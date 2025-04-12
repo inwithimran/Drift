@@ -125,10 +125,12 @@ const handleOutgoingChat = () => {
 
   isResponseGenerating = true;
 
-  const html = `<div class="message-content">
-                  <img class="avatar" src="images/user.jpg" alt="User avatar">
-                  <p class="text"></p>
-                </div>`;
+  const html = `<div class="message outgoing">
+  <div class="message-content">
+    <img src="user-avatar.png" alt="user" class="avatar">
+    <p class="text"></p>
+  </div>
+</div>`;
 
   const outgoingMessageDiv = createMessageElement(html, "outgoing");
   outgoingMessageDiv.querySelector(".text").innerText = userMessage;

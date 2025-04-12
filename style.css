@@ -124,6 +124,16 @@ body.hide-header .header {
   scrollbar-color: #999 transparent;
 }
 
+.chat-list .message.outgoing {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.chat-list .message.outgoing .message-content {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
 .chat-list .message.incoming {
   margin-top: 1.5rem;
 }
