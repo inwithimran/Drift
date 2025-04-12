@@ -127,7 +127,7 @@ const handleOutgoingChat = () => {
 
   const html = `<div class="message outgoing">
   <div class="message-content">
-    <img src="user-avatar.png" alt="user" class="avatar">
+    <img src="images/user.jpg" alt="user" class="avatar">
     <p class="text"></p>
   </div>
 </div>`;
