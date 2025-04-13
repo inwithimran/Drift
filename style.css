@@ -125,6 +125,7 @@ body.hide-header .header {
 }
 
 .chat-list .message.outgoing {
+  margin-right: -2.7px;
   display: flex;
   justify-content: flex-end;
 }
