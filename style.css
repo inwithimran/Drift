@@ -179,15 +179,15 @@ body.hide-header .header {
 
 .chat-list .message .icon {
   color: var(--text-color);
-  cursor: pointer;
-  height: 35px;
-  width: 35px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  font-size: 1.25rem;
+  cursor: pointer;   
+  height: 35px;   
+  width: 35px;   
+  border-radius: 50%;   
+  display: flex;   
+  align-items: center;   
+  justify-content: center;   
+  background: none;   
+  font-size: 1.25rem;   
   margin-left: 3.5rem;
   visibility: hidden;
 }
@@ -352,4 +352,16 @@ body.hide-header .header {
     font-size: 0.75rem;
     margin-top: 0.5rem;
   }
+}
+
+.message .timestamp {
+  font-size: 0.75rem;
+  color: var(--subheading-color);
+  margin-top: 2px;
+}
+
+.uploaded-image {
+  max-width: 240px;
+  border-radius: 10px;
+  margin-top: 6px;
 }
