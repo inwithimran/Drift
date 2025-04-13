@@ -1,10 +1,3 @@
-
-// Helper to format timestamp
-const getCurrentTimestamp = () => {
-  const now = new Date();
-  return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-};
-
 const typingForm = document.querySelector(".typing-form");
 const chatContainer = document.querySelector(".chat-list");
 const suggestions = document.querySelectorAll(".suggestion");
@@ -78,7 +71,7 @@ const generateAPIResponse = async (incomingMessageDiv) => {
     if (!response.ok) throw new Error(data.error.message);
 
     const apiResponse = data?.candidates[0].content.parts[0].text.replace(/\*\*(.*?)\*\*/g, '$1');
-    textElement.insertAdjacentHTML("afterend", `<div class="timestamp">${getCurrentTimestamp()}</div>`);
+    textElement.insertAdjacentHTML("afterend", ``);
     showTypingEffect(apiResponse, textElement, incomingMessageDiv);
   } catch (error) {
     isResponseGenerating = false;
@@ -183,30 +176,7 @@ typingForm.addEventListener("submit", (e) => {
 
 // Load saved data
 loadDataFromLocalstorage();
-const imageUpload = document.querySelector("#image-upload");
 
-imageUpload.addEventListener("change", () => {
-  const file = imageUpload.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = () => {
-    const imageHTML = `<div class="message outgoing">
-      <div class="message-content">
-        <img src="images/user.jpg" alt="user" class="avatar">
-        <div>
-          <img src="${reader.result}" alt="Uploaded Image" class="uploaded-image" />
-          <div class="timestamp">${getCurrentTimestamp()}</div>
-        </div>
-      </div>
-    </div>`;
-    const imageMsg = createMessageElement(imageHTML);
-    chatContainer.appendChild(imageMsg);
-    localStorage.setItem("saved-chats", chatContainer.innerHTML);
-    chatContainer.scrollTo(0, chatContainer.scrollHeight);
-  };
-  reader.readAsDataURL(file);
-});
 
 const exportChat = () => {
   const allMessages = document.querySelectorAll(".message .text");
