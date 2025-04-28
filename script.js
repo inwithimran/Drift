@@ -5,7 +5,6 @@ const toggleThemeButton = document.querySelector("#theme-toggle-button");
 const deleteChatButton = document.querySelector("#delete-chat-button");
 const sendMessageButton = document.querySelector("#send-message-button");
 const typingInput = document.querySelector(".typing-input");
-const goToBottomButton = document.querySelector("#go-to-bottom-button");
 
 // State variables
 let userMessage = null;
@@ -27,7 +26,6 @@ const loadDataFromLocalstorage = () => {
   document.body.classList.toggle("hide-header", savedChats);
   chatContainer.scrollTo(0, chatContainer.scrollHeight);
   updateSendButtonVisibility();
-  toggleGoToBottomButton();
   checkIconLoad();
 }
 
@@ -60,9 +58,6 @@ const checkIconLoad = () => {
   document.body.appendChild(testIcon);
 
   const fontLoaded = window.getComputedStyle(testIcon).fontFamily.includes("Material Symbols Rounded");
-  if (!fontLoaded) {
-    goToBottomButton.classList.add("icon-fallback");
-  }
   document.body.removeChild(testIcon);
 };
 
@@ -87,7 +82,6 @@ const showTypingEffect = (text, textElement, incomingMessageDiv) => {
       localStorage.setItem("saved-chats", chatContainer.innerHTML);
     }
     chatContainer.scrollTo(0, chatContainer.scrollHeight);
-    toggleGoToBottomButton();
   }, 75);
 }
 
@@ -107,7 +101,6 @@ const stopTyping = () => {
       incomingMessageDiv.querySelector(".stop").classList.add("hide"); // Hide stop button
     }
     localStorage.setItem("saved-chats", chatContainer.innerHTML);
-    toggleGoToBottomButton();
   }
 }
 
@@ -148,7 +141,6 @@ const generateAPIResponse = async (incomingMessageDiv) => {
   } finally {
     incomingMessageDiv.classList.remove("loading");
     localStorage.setItem("saved-chats", chatContainer.innerHTML);
-    toggleGoToBottomButton();
   }
 }
 
@@ -190,7 +182,7 @@ const speakMessage = (button) => {
   const messageText = button.closest(".message-content").querySelector(".text").innerText;
   
   // If speech is already active, stop it
-  if (button.innerText === "volume_off") {
+  if (button.innerText === "stop") {
     speechSynthesis.cancel();
     button.innerText = "volume_up";
     return;
@@ -200,7 +192,7 @@ const speakMessage = (button) => {
   const utterance = new SpeechSynthesisUtterance(messageText);
   utterance.lang = "en-US";
   speechSynthesis.speak(utterance);
-  button.innerText = "volume_off";
+  button.innerText = "stop";
   
   // Reset icon when speech ends
   utterance.onend = () => {
@@ -221,9 +213,8 @@ const editMessage = (editButton) => {
     const currentText = editInput.value.trim();
     textElement.innerHTML = currentText || textElement.dataset.originalText; // Restore original text if input is empty
     editInput.remove();
-    messageContent.querySelector(".save-edit")?.remove();
+    messageContent.querySelector(".edit-buttons")?.remove();
     localStorage.setItem("saved-chats", chatContainer.innerHTML);
-    toggleGoToBottomButton();
     return;
   }
 
@@ -231,13 +222,18 @@ const editMessage = (editButton) => {
   const currentText = textElement.innerText;
   textElement.dataset.originalText = currentText;
 
-  // Replace text with input and save button
+  // Replace text with input and save/cancel buttons
   textElement.innerHTML = `
-    <input type="text" class="edit-input" value="${currentText}" />
-    <button class="save-edit">Save</button>
+    <textarea type="text" class="edit-input">${currentText}</textarea>
+    <div class="edit-buttons">
+      <button class="cancel-edit">Cancel</button>
+      <button class="save-edit">Save</button>
+    </div>
   `;
 
   const saveButton = messageContent.querySelector(".save-edit");
+  const cancelButton = messageContent.querySelector(".cancel-edit");
+
   saveButton.addEventListener("click", () => {
     const newText = messageContent.querySelector(".edit-input").value.trim();
     if (newText && !isResponseGenerating) {
@@ -256,7 +252,13 @@ const editMessage = (editButton) => {
       localStorage.setItem("saved-chats", chatContainer.innerHTML);
       setTimeout(showLoadingAnimation, 500);
     }
-    toggleGoToBottomButton();
+  });
+
+  cancelButton.addEventListener("click", () => {
+    // Restore original text and remove edit input/buttons
+    textElement.innerHTML = textElement.dataset.originalText;
+    messageContent.querySelector(".edit-buttons")?.remove();
+    localStorage.setItem("saved-chats", chatContainer.innerHTML);
   });
 };
 
@@ -282,7 +284,6 @@ const deleteMessage = (deleteButton) => {
       document.body.classList.remove("hide-header");
       localStorage.removeItem("saved-chats");
     }
-    toggleGoToBottomButton();
   }
 };
 
@@ -292,32 +293,6 @@ const updateSendButtonVisibility = () => {
   // Disable button only if no text and not in pause state
   sendMessageButton.disabled = !hasText && !isResponseGenerating;
 };
-
-// Debounce function to limit scroll event frequency
-const debounce = (func, wait) => {
-  let timeout;
-  return (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), wait);
-  };
-};
-
-// Function to toggle Go to Bottom button visibility
-const toggleGoToBottomButton = () => {
-  const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 1;
-  goToBottomButton.classList.toggle("visible", !isAtBottom);
-};
-
-// Scroll to bottom when Go to Bottom button is clicked
-goToBottomButton.addEventListener("click", () => {
-  chatContainer.scrollTo({
-    top: chatContainer.scrollHeight,
-    behavior: "smooth"
-  });
-});
-
-// Add scroll event listener with debounce to toggle button visibility
-chatContainer.addEventListener("scroll", debounce(toggleGoToBottomButton, 100));
 
 // Outgoing message handler
 const handleOutgoingChat = () => {
@@ -334,7 +309,6 @@ const handleOutgoingChat = () => {
   typingForm.reset();
   document.body.classList.add("hide-header");
   chatContainer.scrollTo(0, chatContainer.scrollHeight);
-  toggleGoToBottomButton();
   setTimeout(showLoadingAnimation, 500);
 }
 
