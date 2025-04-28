@@ -10,6 +10,7 @@ const typingInput = document.querySelector(".typing-input");
 let userMessage = null;
 let isResponseGenerating = false;
 let typingInterval = null; // Store typing interval for stopping
+let pendingOutgoingMessage = null; // Track outgoing message until API response
 
 // API configuration
 const API_KEY = "AIzaSyCu7KwRs1daR6lCx9PL8piOQl1TZUpfN80"; // Replace with your actual API key
@@ -22,6 +23,20 @@ const escapeHtml = (text) => {
   return div.innerHTML;
 }
 
+// Save chats to local storage, excluding error messages and pending outgoing message if error exists
+const saveChatsToLocalStorage = () => {
+  const messages = chatContainer.querySelectorAll(".message:not(.error)");
+  const filteredMessages = Array.from(messages).filter(msg => {
+    // Exclude the pending outgoing message if an error exists
+    if (msg === pendingOutgoingMessage && chatContainer.querySelector(".message.error")) {
+      return false;
+    }
+    return true;
+  });
+  const filteredHTML = filteredMessages.map(msg => msg.outerHTML).join('');
+  localStorage.setItem("saved-chats", filteredHTML);
+}
+
 // Load theme and chat data from local storage on page load
 const loadDataFromLocalstorage = () => {
   const savedChats = localStorage.getItem("saved-chats");
@@ -30,7 +45,7 @@ const loadDataFromLocalstorage = () => {
   document.body.classList.toggle("light_mode", isLightMode);
   toggleThemeButton.innerText = isLightMode ? "dark_mode" : "light_mode";
   chatContainer.innerHTML = savedChats || '';
-  document.body.classList.toggle("hide-header", savedChats);
+  document.body.classList.toggle("hide-header", !!savedChats);
   chatContainer.scrollTo(0, chatContainer.scrollHeight);
   updateSendButtonVisibility();
   checkIconLoad();
@@ -128,7 +143,7 @@ const showTypingEffect = (text, textElement, incomingMessageDiv) => {
     incomingMessageDiv.querySelector(".icon:not(.stop)")?.classList.add("hide");
 
     // Save to local storage during typing
-    localStorage.setItem("saved-chats", chatContainer.innerHTML);
+    saveChatsToLocalStorage();
 
     if (currentWordIndex === words.length) {
       clearInterval(typingInterval);
@@ -139,7 +154,7 @@ const showTypingEffect = (text, textElement, incomingMessageDiv) => {
       updateSendButtonVisibility();
       incomingMessageDiv.querySelectorAll(".icon").forEach(icon => icon.classList.remove("hide"));
       incomingMessageDiv.querySelector(".stop")?.classList.add("hide"); // Hide stop button when done
-      localStorage.setItem("saved-chats", chatContainer.innerHTML);
+      saveChatsToLocalStorage();
     }
     chatContainer.scrollTo(0, chatContainer.scrollHeight);
   }, 75);
@@ -160,7 +175,7 @@ const stopTyping = () => {
       incomingMessageDiv.querySelectorAll(".icon").forEach(icon => icon.classList.remove("hide"));
       incomingMessageDiv.querySelector(".stop")?.classList.add("hide"); // Hide stop button
     }
-    localStorage.setItem("saved-chats", chatContainer.innerHTML);
+    saveChatsToLocalStorage();
   }
 }
 
@@ -196,10 +211,10 @@ const generateAPIResponse = async (incomingMessageDiv) => {
     incomingMessageDiv.querySelector(".loading-indicator")?.remove(); // Remove loading indicator
     incomingMessageDiv.classList.add("error");
     incomingMessageDiv.querySelectorAll(".icon").forEach(icon => icon.classList.add("hide"));
-    localStorage.setItem("saved-chats", chatContainer.innerHTML); // Save error state
+    saveChatsToLocalStorage(); // Save non-error messages, excluding pending outgoing
   } finally {
     incomingMessageDiv.classList.remove("loading");
-    localStorage.setItem("saved-chats", chatContainer.innerHTML); // Save final state
+    pendingOutgoingMessage = null; // Clear pending message
   }
 }
 
@@ -211,7 +226,6 @@ const showLoadingAnimation = () => {
   sendMessageButton.innerText = "stop"; // Change to pause icon
   sendMessageButton.setAttribute("data-state", "stop"); // Set pause state
   updateSendButtonVisibility();
-  localStorage.setItem("saved-chats", chatContainer.innerHTML); // Save to local storage
   generateAPIResponse(incomingMessageDiv);
 }
 
@@ -260,7 +274,7 @@ const editMessage = (editButton) => {
     textElement.innerText = currentText || textElement.dataset.originalText; // Use innerText instead of innerHTML
     editInput.remove();
     messageContent.querySelector(".edit-buttons")?.remove();
-    localStorage.setItem("saved-chats", chatContainer.innerHTML);
+    saveChatsToLocalStorage();
     return;
   }
 
@@ -295,7 +309,7 @@ const editMessage = (editButton) => {
       // Trigger new API response with edited message
       userMessage = newText;
       isResponseGenerating = true;
-      localStorage.setItem("saved-chats", chatContainer.innerHTML);
+      saveChatsToLocalStorage();
       setTimeout(showLoadingAnimation, 500);
     }
   });
@@ -304,7 +318,7 @@ const editMessage = (editButton) => {
     // Restore original text and remove edit input/buttons
     textElement.innerText = textElement.dataset.originalText; // Use innerText instead of innerHTML
     messageContent.querySelector(".edit-buttons")?.remove();
-    localStorage.setItem("saved-chats", chatContainer.innerHTML);
+    saveChatsToLocalStorage();
   });
 };
 
@@ -323,7 +337,7 @@ const deleteMessage = (deleteButton) => {
     }
 
     // Update local storage
-    localStorage.setItem("saved-chats", chatContainer.innerHTML);
+    saveChatsToLocalStorage();
 
     // Show header if no chats remain
     if (!chatContainer.children.length) {
@@ -348,6 +362,7 @@ const handleOutgoingChat = () => {
 
   const outgoingMessageDiv = createMessageElement(userMessage, "outgoing");
   chatContainer.appendChild(outgoingMessageDiv);
+  pendingOutgoingMessage = outgoingMessageDiv; // Track pending outgoing message
   typingForm.reset();
   document.body.classList.add("hide-header");
   chatContainer.scrollTo(0, chatContainer.scrollHeight);
