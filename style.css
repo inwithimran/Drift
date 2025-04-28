@@ -149,7 +149,7 @@ body.hide-header .header {
   list-style: none;
   display: flex;
   gap: 1rem;
-  margin-top: 25vh;
+  margin-top: 15vh;
   overflow: hidden;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
@@ -357,6 +357,7 @@ body.hide-header .header {
   right: 0;
   padding: 0 0.70rem 0.70rem;
   background: var(--primary-color);
+  border-radius: 30% 30% 0 0;
   z-index: 1000;
   animation: slideUp 0.4s ease-out;
 }
