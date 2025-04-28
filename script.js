@@ -15,10 +15,17 @@ let typingInterval = null; // Store typing interval for stopping
 const API_KEY = "AIzaSyCu7KwRs1daR6lCx9PL8piOQl1TZUpfN80"; // Replace with your actual API key
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
+// Function to escape HTML special characters
+const escapeHtml = (text) => {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // Load theme and chat data from local storage on page load
 const loadDataFromLocalstorage = () => {
   const savedChats = localStorage.getItem("saved-chats");
-  const isLightMode = (localStorage.getItem("themeColor") === "light_mode");
+  const isLightMode = localStorage.getItem("themeColor") === "light_mode";
 
   document.body.classList.toggle("light_mode", isLightMode);
   toggleThemeButton.innerText = isLightMode ? "dark_mode" : "light_mode";
@@ -33,18 +40,68 @@ const loadDataFromLocalstorage = () => {
 const createMessageElement = (content, ...classes) => {
   const div = document.createElement("div");
   div.classList.add("message", ...classes);
+
+  const messageContent = document.createElement("div");
+  messageContent.classList.add("message-content");
+
+  const textDiv = document.createElement("div");
+  textDiv.classList.add("text");
+  textDiv.innerText = content; // Use innerText for safety
+
+  messageContent.appendChild(textDiv);
+
+  const iconContainer = document.createElement("div");
+  iconContainer.classList.add("icon-container");
+
   if (classes.includes("outgoing")) {
-    div.innerHTML = `
-      <div class="message-content">
-        <div class="text">${content.match(/<div class="message-content">\s*<div class="text">(.*?)<\/div>\s*<\/div>/)?.[1] || content}</div>
-      </div>
-      <div class="icon-container">
-        <span onClick="editMessage(this)" class="icon material-symbols-rounded">edit</span>
-        <span onClick="deleteMessage(this)" class="icon material-symbols-rounded">delete</span>
-      </div>`;
+    iconContainer.innerHTML = `
+      <span onClick="editMessage(this)" class="icon material-symbols-rounded">edit</span>
+      <span onClick="deleteMessage(this)" class="icon material-symbols-rounded">delete</span>
+    `;
   } else {
-    div.innerHTML = content;
+    iconContainer.innerHTML = `
+      <span onClick="copyMessage(this)" class="icon material-symbols-rounded">content_copy</span>
+      <span onClick="speakMessage(this)" class="icon material-symbols-rounded">volume_up</span>
+    `;
   }
+
+  div.appendChild(messageContent);
+  div.appendChild(iconContainer);
+
+  return div;
+}
+
+// Create loading message element
+const createLoadingMessageElement = () => {
+  const div = document.createElement("div");
+  div.classList.add("message", "incoming", "loading");
+
+  const messageContent = document.createElement("div");
+  messageContent.classList.add("message-content");
+
+  const textDiv = document.createElement("div");
+  textDiv.classList.add("text");
+  messageContent.appendChild(textDiv);
+
+  const loadingIndicator = document.createElement("div");
+  loadingIndicator.classList.add("loading-indicator");
+  loadingIndicator.innerHTML = `
+    <div class="loading-bar"></div>
+    <div class="loading-bar"></div>
+    <div class="loading-bar"></div>
+  `;
+  messageContent.appendChild(loadingIndicator);
+
+  const iconContainer = document.createElement("div");
+  iconContainer.classList.add("icon-container");
+  iconContainer.innerHTML = `
+    <span onClick="copyMessage(this)" class="icon material-symbols-rounded hide">content_copy</span>
+    <span onClick="speakMessage(this)" class="icon material-symbols-rounded hide">volume_up</span>
+    <span onClick="stopTyping()" class="icon material-symbols-rounded stop">stop</span>
+  `;
+  messageContent.appendChild(iconContainer);
+
+  div.appendChild(messageContent);
   return div;
 }
 
@@ -68,7 +125,10 @@ const showTypingEffect = (text, textElement, incomingMessageDiv) => {
 
   typingInterval = setInterval(() => {
     textElement.innerText += (currentWordIndex === 0 ? '' : ' ') + words[currentWordIndex++];
-    incomingMessageDiv.querySelector(".icon:not(.stop)").classList.add("hide");
+    incomingMessageDiv.querySelector(".icon:not(.stop)")?.classList.add("hide");
+
+    // Save to local storage during typing
+    localStorage.setItem("saved-chats", chatContainer.innerHTML);
 
     if (currentWordIndex === words.length) {
       clearInterval(typingInterval);
@@ -78,7 +138,7 @@ const showTypingEffect = (text, textElement, incomingMessageDiv) => {
       sendMessageButton.removeAttribute("data-state"); // Remove pause state
       updateSendButtonVisibility();
       incomingMessageDiv.querySelectorAll(".icon").forEach(icon => icon.classList.remove("hide"));
-      incomingMessageDiv.querySelector(".stop").classList.add("hide"); // Hide stop button when done
+      incomingMessageDiv.querySelector(".stop")?.classList.add("hide"); // Hide stop button when done
       localStorage.setItem("saved-chats", chatContainer.innerHTML);
     }
     chatContainer.scrollTo(0, chatContainer.scrollHeight);
@@ -98,7 +158,7 @@ const stopTyping = () => {
     const incomingMessageDiv = document.querySelector(".message.incoming:not(.error)");
     if (incomingMessageDiv) {
       incomingMessageDiv.querySelectorAll(".icon").forEach(icon => icon.classList.remove("hide"));
-      incomingMessageDiv.querySelector(".stop").classList.add("hide"); // Hide stop button
+      incomingMessageDiv.querySelector(".stop")?.classList.add("hide"); // Hide stop button
     }
     localStorage.setItem("saved-chats", chatContainer.innerHTML);
   }
@@ -124,7 +184,7 @@ const generateAPIResponse = async (incomingMessageDiv) => {
     if (!response.ok) throw new Error(data.error.message);
 
     const apiResponse = data?.candidates[0].content.parts[0].text.replace(/\*\*(.*?)\*\*/g, '$1');
-    textElement.insertAdjacentHTML("afterend", ``);
+    incomingMessageDiv.querySelector(".loading-indicator")?.remove(); // Remove loading indicator
     showTypingEffect(apiResponse, textElement, incomingMessageDiv);
   } catch (error) {
     isResponseGenerating = false;
@@ -133,39 +193,25 @@ const generateAPIResponse = async (incomingMessageDiv) => {
     sendMessageButton.removeAttribute("data-state"); // Remove pause state
     updateSendButtonVisibility();
     textElement.innerText = error.message;
-    textElement.parentElement.closest(".message").classList.add("error");
-    const incomingMessageDiv = document.querySelector(".message.incoming.error");
-    if (incomingMessageDiv) {
-      incomingMessageDiv.querySelectorAll(".icon").forEach(icon => icon.classList.add("hide"));
-    }
+    incomingMessageDiv.querySelector(".loading-indicator")?.remove(); // Remove loading indicator
+    incomingMessageDiv.classList.add("error");
+    incomingMessageDiv.querySelectorAll(".icon").forEach(icon => icon.classList.add("hide"));
+    localStorage.setItem("saved-chats", chatContainer.innerHTML); // Save error state
   } finally {
     incomingMessageDiv.classList.remove("loading");
-    localStorage.setItem("saved-chats", chatContainer.innerHTML);
+    localStorage.setItem("saved-chats", chatContainer.innerHTML); // Save final state
   }
 }
 
 // Show loading message
 const showLoadingAnimation = () => {
-  const html = `<div class="message-content">
-                  <p class="text"></p>
-                  <div class="loading-indicator">
-                    <div class="loading-bar"></div>
-                    <div class="loading-bar"></div>
-                    <div class="loading-bar"></div>
-                  </div>
-                  <div class="icon-container">
-                    <span onClick="copyMessage(this)" class="icon material-symbols-rounded">content_copy</span>
-                    <span onClick="speakMessage(this)" class="icon material-symbols-rounded">volume_up</span>
-                    <span onClick="stopTyping(this)" class="icon material-symbols-rounded stop">stop</span>
-                  </div>
-                </div>`;
-
-  const incomingMessageDiv = createMessageElement(html, "incoming", "loading");
+  const incomingMessageDiv = createLoadingMessageElement();
   chatContainer.appendChild(incomingMessageDiv);
   chatContainer.scrollTo(0, chatContainer.scrollHeight);
-  sendMessageButton.innerText = "pause"; // Change to pause icon
-  sendMessageButton.setAttribute("data-state", "pause"); // Set pause state
+  sendMessageButton.innerText = "stop"; // Change to pause icon
+  sendMessageButton.setAttribute("data-state", "stop"); // Set pause state
   updateSendButtonVisibility();
+  localStorage.setItem("saved-chats", chatContainer.innerHTML); // Save to local storage
   generateAPIResponse(incomingMessageDiv);
 }
 
@@ -182,7 +228,7 @@ const speakMessage = (button) => {
   const messageText = button.closest(".message-content").querySelector(".text").innerText;
   
   // If speech is already active, stop it
-  if (button.innerText === "stop") {
+  if (button.innerText === "pause") {
     speechSynthesis.cancel();
     button.innerText = "volume_up";
     return;
@@ -192,7 +238,7 @@ const speakMessage = (button) => {
   const utterance = new SpeechSynthesisUtterance(messageText);
   utterance.lang = "en-US";
   speechSynthesis.speak(utterance);
-  button.innerText = "stop";
+  button.innerText = "pause";
   
   // Reset icon when speech ends
   utterance.onend = () => {
@@ -211,7 +257,7 @@ const editMessage = (editButton) => {
   if (editInput) {
     // If edit input exists, close edit mode by restoring the original text
     const currentText = editInput.value.trim();
-    textElement.innerHTML = currentText || textElement.dataset.originalText; // Restore original text if input is empty
+    textElement.innerText = currentText || textElement.dataset.originalText; // Use innerText instead of innerHTML
     editInput.remove();
     messageContent.querySelector(".edit-buttons")?.remove();
     localStorage.setItem("saved-chats", chatContainer.innerHTML);
@@ -238,7 +284,7 @@ const editMessage = (editButton) => {
     const newText = messageContent.querySelector(".edit-input").value.trim();
     if (newText && !isResponseGenerating) {
       // Update the outgoing message
-      textElement.innerHTML = newText;
+      textElement.innerText = newText; // Use innerText instead of innerHTML
       
       // Find and remove the next incoming message (if it exists)
       let nextSibling = outgoingMessageDiv.nextElementSibling;
@@ -256,7 +302,7 @@ const editMessage = (editButton) => {
 
   cancelButton.addEventListener("click", () => {
     // Restore original text and remove edit input/buttons
-    textElement.innerHTML = textElement.dataset.originalText;
+    textElement.innerText = textElement.dataset.originalText; // Use innerText instead of innerHTML
     messageContent.querySelector(".edit-buttons")?.remove();
     localStorage.setItem("saved-chats", chatContainer.innerHTML);
   });
@@ -300,11 +346,7 @@ const handleOutgoingChat = () => {
 
   isResponseGenerating = true;
 
-  const html = `<div class="message-content">
-      <div class="text">${userMessage}</div>
-  </div>`;
-
-  const outgoingMessageDiv = createMessageElement(html, "outgoing");
+  const outgoingMessageDiv = createMessageElement(userMessage, "outgoing");
   chatContainer.appendChild(outgoingMessageDiv);
   typingForm.reset();
   document.body.classList.add("hide-header");
@@ -349,13 +391,9 @@ suggestions.forEach(suggestion => {
   });
 });
 
-// Form submit handler
+// Prevent form submission on Enter key (allow Enter to add new line)
 typingForm.addEventListener("submit", (e) => {
-  e.preventDefault(); 
-  if (!isResponseGenerating) {
-    userMessage = typingInput.value.trim();
-    handleOutgoingChat();
-  }
+  e.preventDefault(); // Prevent form submission
 });
 
 // Input change handler to show/hide send button

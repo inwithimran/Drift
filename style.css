@@ -61,17 +61,18 @@ body {
   to { transform: translateY(0); }
 }
 
-.fixed-header .app-name {
-  font-size: 1.5rem;
-  font-weight: 600;
-  background: var(--gradient-bg);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.fixed-header .app-logo {
+  width: 40px;
+  height: 40px;
+  background-image: url('images/drift_logo.png');
+  background-size: cover;
+  background-position: center;
+  border-radius: 50%;
   transition: transform 0.3s ease;
 }
 
-.fixed-header .app-name:hover {
-  transform: scale(1.05);
+.fixed-header .app-logo:hover {
+  transform: scale(1.1);
 }
 
 .fixed-header .tags {
@@ -117,12 +118,12 @@ body.hide-header .header {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(40px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .greeting-title {
-  font-size: 2.5rem;
+  font-size: 3rem;
   font-weight: 600;
   background: var(--gradient-bg);
   -webkit-background-clip: text;
@@ -147,25 +148,20 @@ body.hide-header .header {
 .suggestion-list {
   width: 100%;
   list-style: none;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
-  margin-top: 15vh;
-  overflow: hidden;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
+  margin-top: 8vh;
+  padding: 0 1rem;
 }
 
 .suggestion-list .suggestion {
   cursor: pointer;
-  padding: 0.8rem;
-  width: 180px;
-  flex-shrink: 0;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   border-radius: 1rem;
-  justify-content: space-between;
   background: var(--secondary-color);
   transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
@@ -181,7 +177,7 @@ body.hide-header .header {
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-color);
-  text-align: right;
+  text-align: left;
 }
 
 .suggestion-list .suggestion .icon {
@@ -251,6 +247,7 @@ body.hide-header .header {
   color: var(--text-color);
   white-space: pre-wrap;
   word-break: break-word;
+  line-height: 1.5;
 }
 
 .chat-list .message.outgoing .text {
@@ -263,6 +260,8 @@ body.hide-header .header {
   text-align: left;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: background 0.3s ease;
+  white-space: pre-wrap;
+  line-height: 1.5;
 }
 
 .light_mode .chat-list .message.outgoing .text {
@@ -275,7 +274,7 @@ body.hide-header .header {
 }
 
 .chat-list .message.error .text {
-  color: #F87171; /* Red for errors */
+  color: #F87171;
 }
 
 .chat-list .message.loading .text {
@@ -298,7 +297,7 @@ body.hide-header .header {
   width: 100%;
   border-radius: 0.135rem;
   background: var(--gradient-bg);
-  animation: pulse 1.4s ease-in-out infinite;
+  animation: pulse 1.7s ease-in-out infinite;
 }
 
 .chat-list .message .loading-indicator .loading-bar:last-child {
@@ -369,7 +368,7 @@ body.hide-header .header {
   max-width: 980px;
   margin: 0 auto;
   background: var(--secondary-color);
-  border-radius: 32px;
+  border-radius: 20px;
   padding: 0.5rem 0.75rem;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   transition: transform 0.3s ease;
@@ -395,7 +394,7 @@ body.hide-header .header {
   color: var(--text-color);
   font-size: 0.95rem;
   padding: 0.2rem 0.8rem;
-  border-radius: 32px;
+  border-radius: 10px;
   resize: none;
   height: 40px;
   max-height: 80px;
@@ -460,6 +459,10 @@ body.hide-header .header {
   transition: background 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
 }
 
+.light_mode .typing-form .action-buttons .send-button {
+  background: #000;
+  color: #fff;
+}
 
 .typing-form .action-buttons .send-button:disabled {
   background: var(--subheading-color);
@@ -474,7 +477,8 @@ body.hide-header .header {
 }
 
 .light_mode .typing-form .action-buttons .send-button:not(:disabled)[data-state="pause"] {
-  background: #fff;
+  background: #000;
+  color: #fff;
   opacity: 1;
   cursor: pointer;
 }
@@ -488,11 +492,11 @@ body.hide-header .header {
   background: var(--secondary-color);
   color: var(--text-color);
   font-size: 1rem;
+  resize: none;
   outline: none;
   box-shadow: none;
   transition: background 0.3s ease;
 }
-
 
 .edit-buttons {
   display: flex;
@@ -521,21 +525,26 @@ body.hide-header .header {
 }
 
 .cancel-edit:hover {
+    background: #404040;
+}
+
+.light_mode .cancel-edit:hover {
     background: #ccc;
 }
 
 /* Responsive media query code for small screen */
 @media (max-width: 768px) {
   .greeting-title {
-    font-size: 1.8rem;
+    font-size: 2rem;
   }
 
   .greeting-subtitle {
     font-size: 1.4rem;
   }
 
-  .fixed-header .app-name {
-    font-size: 1.2rem;
+  .fixed-header .app-logo {
+    width: 32px;
+    height: 32px;
   }
 
   .fixed-header .tags {
@@ -547,9 +556,14 @@ body.hide-header .header {
     padding: 0.15rem 0.5rem;
   }
 
+  .suggestion-list {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.8rem;
+    padding: 0 0.5rem;
+  }
+
   .suggestion-list .suggestion {
-    width: 150px;
-    padding: 0.6rem;
+    padding: 0.8rem;
   }
 
   .suggestion-list .suggestion .text {
@@ -579,7 +593,7 @@ body.hide-header .header {
   .typing-form .typing-input {
     font-size: 0.9rem;
     padding: 0.2rem 0.6rem;
-    height: 36px;
+    height: 50px;
     max-height: 72px;
   }
 
