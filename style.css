@@ -9,23 +9,26 @@
 }
 
 :root {
-  /* Dark mode colors */
-  --text-color: #E3E3E3;
-  --subheading-color: #828282;
-  --placeholder-color: #A6A6A6;
-  --primary-color: #242424;
-  --secondary-color: #383838;
-  --secondary-hover-color: #444;
+  /* Colors matched to resemble Grok app's dark theme */
+  --text-color: #FFFFFF;
+  --subheading-color: #A0A0A0;
+  --placeholder-color: #A0A0A0;
+  --primary-color: #1C2526; /* Dark background */
+  --secondary-color: #2A2A2A; /* Input background */
+  --secondary-hover-color: #3A3A3A;
+  --accent-color: #4285F4; /* Blue accent for send button */
+  --accent-hover-color: #5A9BF7;
 }
 
 .light_mode {
-  /* Light mode colors */
   --text-color: #222;
-  --subheading-color: #A0A0A0;
-  --placeholder-color: #6C6C6C;
-  --primary-color: #FFF;
-  --secondary-color: #E9EEF6;
-  --secondary-hover-color: #DBE1EA;
+  --subheading-color: #888;
+  --placeholder-color: #666;
+  --primary-color: #F5F5F5;
+  --secondary-color: #E0E0E0;
+  --secondary-hover-color: #D0D0D0;
+  --accent-color: #4285F4;
+  --accent-hover-color: #5A9BF7;
 }
 
 body {
@@ -132,7 +135,7 @@ body.hide-header .header {
 .suggestion-list .suggestion {
   cursor: pointer;
   padding: 0.8rem;
-  width: 180px;
+  width: 180px; 
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -171,7 +174,7 @@ body.hide-header .header {
 }
 
 .chat-list {
-  padding: 5rem 1.5rem 12rem; /* Adjusted top padding to account for fixed header */
+  padding: 5rem 1.5rem 10rem;
   max-height: 100vh;
   overflow-y: auto;
   scrollbar-color: #999 transparent;
@@ -194,6 +197,13 @@ body.hide-header .header {
   margin-top: 1.5rem;
 }
 
+.chat-list .message.incoming .message-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 100%; /* Limit the width of incoming messages */
+}
+
 .chat-list .message .message-content {
   display: flex;
   flex-direction: column;
@@ -203,6 +213,7 @@ body.hide-header .header {
 .chat-list .message .text {
   color: var(--text-color);
   white-space: pre-wrap;
+  word-break: break-word; /* Break long words to fit within the container */
 }
 
 .chat-list .message.outgoing .text {
@@ -216,8 +227,8 @@ body.hide-header .header {
 }
 
 .light_mode .chat-list .message.outgoing .text {
-  background: #E9EEF6;
-  color:#000 /* Light mode outgoing message bubble color */
+  background: #E0E0E0;
+  color: #000;
 }
 
 .chat-list .message.incoming .text {
@@ -248,7 +259,7 @@ body.hide-header .header {
   width: 100%;
   border-radius: 0.135rem;
   background-position: -800px 0;
-  background: linear-gradient(to right, #4285f4, var(--primary-color), #4285f4);
+  background: linear-gradient(to right, var(--accent-color), var(--primary-color), var(--accent-color));
   animation: loading 3s linear infinite;
 }
 
@@ -267,8 +278,8 @@ body.hide-header .header {
 
 .chat-list .message .icon-container {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
 }
 
 .chat-list .message.outgoing .icon-container {
@@ -279,19 +290,16 @@ body.hide-header .header {
 .chat-list .message .icon {
   color: var(--text-color);
   cursor: pointer;
-  height: 30px;
-  width: 30px;
+  height: 32px;
+  width: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: none;
-  font-size: 1.1rem;
+  background: var(--secondary-color);
+  font-size: 1rem;
   visibility: hidden;
-}
-
-.chat-list .message .icon.hide {
-  visibility: hidden;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .chat-list .message:not(.loading, .error):hover .icon:not(.hide) {
@@ -299,89 +307,156 @@ body.hide-header .header {
 }
 
 .chat-list .message .icon:hover {
-  background: var(--secondary-hover-color);
+  background: var(--accent-color);
+  transform: scale(1.1);
 }
 
+.chat-list .message .icon.hide {
+  visibility: hidden;
+}
+
+/* Typing Area Styles */
 .typing-area {
   position: fixed;
-  width: 100%;
-  left: 0;
   bottom: 0;
-  padding: 1rem;
+  left: 0;
+  right: 0;
+  padding: 0 0.70rem 0.70rem;
+  margin-top: 0;
   background: var(--primary-color);
+  z-index: 1000;
 }
 
-.typing-area :where(.typing-form, .action-buttons) {
+.typing-form {
   display: flex;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 980px;
+  margin: 0 auto;
+  background: var(--secondary-color);
+  border-radius: 32px;
+  padding: 0.5rem 0.75rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .typing-form .input-wrapper {
-  width: 100%;
-  height: 56px;
+  flex: 1;
   display: flex;
-  position: relative;
+  align-items: center;
+  background: transparent;
+  border-radius: 32px;
+  margin-top: 0;
 }
 
 .typing-form .typing-input {
-  height: 100%;
-  width: 100%;
+  flex: 1;
   border: none;
   outline: none;
-  resize: none;
-  font-size: 1rem;
+  background: transparent;
   color: var(--text-color);
-  padding: 1.1rem 4rem 1.1rem 1.5rem;
-  border-radius: 100px;
-  background: var(--secondary-color);
-}
-
-.typing-form .typing-input:focus {
-  background: var(--secondary-hover-color);
+  font-size: 0.95rem;
+  padding: 0.2rem 0.8rem;
+  border-radius: 32px;
+  resize: none;
+  height: 40px;
+  max-height: 80px;
+  overflow-y: auto;
+  line-height: 1.4;
 }
 
 .typing-form .typing-input::placeholder {
   color: var(--placeholder-color);
+  opacity: 0.7;
 }
 
-.typing-area .icon {
-  width: 56px;
-  height: 56px;
-  flex-shrink: 0;
-  cursor: pointer;
-  border-radius: 50%;
+.typing-form .typing-input:focus {
+  background: transparent;
+}
+
+.typing-form .action-buttons {
   display: flex;
-  font-size: 1.4rem;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.75rem;
+}
+
+.typing-form .action-buttons .left-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.disclaimer-text {
+  text-align: center;
+  font-size: 0.75rem;
+  margin-top: .5rem;
+  color: var(--placeholder-color);
+}
+
+.typing-form .action-buttons .icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary-color);
   color: var(--text-color);
+  display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--secondary-color);
-  transition: 0.2s ease;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
-.typing-area .icon:hover {
+.typing-form .action-buttons .icon:hover {
   background: var(--secondary-hover-color);
+  transform: scale(1.1);
 }
 
-.typing-form #send-message-button {
-  position: absolute;
-  right: 0;
-  outline: none;
+.typing-form .action-buttons .send-button {
+  width: 40px;
+  height: 40px;
   border: none;
-  transform: scale(0);
-  background: transparent;
-  transition: transform 0.2s ease;
+  outline: none;
+  background: #fff;
+  color: #000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease;
 }
 
-.typing-form .typing-input:valid ~ #send-message-button {
-  transform: scale(1);
+.light_mode .action-buttons .send-button{
+  background: #000;
+  color: #fff;
 }
 
-.typing-area .disclaimer-text {
-  text-align: center;
-  font-size: 0.85rem;
-  margin-top: 1rem;
-  color: var(--placeholder-color);
+.typing-form .action-buttons .send-button:disabled {
+  background: var(--subheading-color);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.typing-form .action-buttons .send-button:not(:disabled)[data-state="pause"] {
+  background: #fff;
+  opacity: 1;
+  cursor: pointer;
+}
+
+.light_mode .typing-form .action-buttons .send-button:not(:disabled)[data-state="pause"] {
+  background: #000;
+  opacity: 1;
+  cursor: pointer;
+}
+
+.typing-form .action-buttons .send-button:hover:not(:disabled) {
+  background: #fff;
+}
+
+.light_mode .typing-form .action-buttons .send-button:hover:not(:disabled) {
+  background: #000;
 }
 
 /* Edit input and save button styles */
@@ -399,13 +474,57 @@ body.hide-header .header {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 5px;
-  background: #4285f4;
+  background: var(--accent-color);
   color: #fff;
   cursor: pointer;
 }
 
 .save-edit:hover {
-  background: #357ae8;
+  background: var(--accent-hover-color);
+}
+
+/* Go to Bottom Button Styles */
+.go-to-bottom {
+  position: fixed;
+  bottom: 5.5rem; /* Adjusted to sit just above the typing area */
+  right: 1rem; /* Aligned with the send button */
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent-color);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  z-index: 2000; /* Ensure above typing area */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.go-to-bottom:hover {
+  background: var(--accent-hover-color);
+  transform: scale(1.1);
+}
+
+.go-to-bottom.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Fallback style if icon fails to load */
+.go-to-bottom::after {
+  content: "↓";
+  font-size: 1.2rem;
+  display: none;
+}
+
+.go-to-bottom.icon-fallback::after {
+  display: block;
 }
 
 /* Responsive media query code for small screen */
@@ -448,28 +567,63 @@ body.hide-header .header {
   }
 
   .chat-list {
-    padding: 4rem 1.5rem 12rem; /* Adjusted for smaller fixed header height */
+    padding: 4rem 1.5rem 10rem;
   }
 
-  .typing-area :where(.typing-form, .action-buttons) {
-    gap: 0.4rem;
+  .typing-area {
+    padding: 0 0.5rem 0.5rem;
+    margin-top: 0;
   }
 
-  .typing-form .input-wrapper {
-    height: 50px;
+  .typing-form {
+    padding: 0.5rem;
+    gap: 0.5rem;
   }
 
   .typing-form .typing-input {
-    padding: 1.1rem 3.5rem 1.1rem 1.2rem;
+    font-size: 0.9rem;
+    padding: 0.2rem 0.6rem;
+    height: 36px;
+    max-height: 72px;
   }
 
-  .typing-area .icon {
-    height: 50px;
-    width: 50px;
+  .typing-form .action-buttons {
+    gap: 0.5rem;
+    padding: 0 0.5rem;
   }
 
-  .typing-area .disclaimer-text {
+  .typing-form .action-buttons .left-buttons {
+    gap: 0.5rem;
+  }
+
+  .typing-form .action-buttons .icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+  }
+
+  .typing-form .action-buttons .send-button {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+  }
+
+  .chat-list .message .icon {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+
+  .disclaimer-text {
     font-size: 0.75rem;
     margin-top: 0.5rem;
+  }
+
+  .go-to-bottom {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+    bottom: 5rem; /* Adjusted for smaller screens */
+    right: 0.5rem;
   }
 }
