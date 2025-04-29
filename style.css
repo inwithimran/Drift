@@ -342,6 +342,12 @@ body.hide-header .header {
 
 .chat-list .message .icon:hover {
   transform: scale(1.2);
+  color: dodgerblue;
+}
+
+.chat-list .message .delete-color:hover {
+  transform: scale(1.2);
+  color: #F87171;
 }
 
 .chat-list .message .icon.hide {
@@ -357,7 +363,7 @@ body.hide-header .header {
   padding: 0 0.70rem 0.70rem;
   background: var(--primary-color);
   border-radius: 30% 30% 0 0;
-  z-index: 1000;
+  z-index: 1;
   animation: slideUp 0.4s ease-out;
 }
 
@@ -419,6 +425,16 @@ body.hide-header .header {
 .typing-form .action-buttons .left-buttons {
   display: flex;
   gap: 0.75rem;
+}
+
+.typing-form .action-buttons .left-buttons .icon:hover {
+  color: dodgerblue;
+  transform: scale(1.1);
+}
+
+.typing-form .action-buttons .left-buttons #delete-chat-button:hover {
+  color: #F87171;
+  transform: scale(1.0);
 }
 
 .disclaimer-text {
@@ -532,6 +548,84 @@ body.hide-header .header {
     background: #ccc;
 }
 
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1;
+}
+
+.custom-modal {
+  background: var(--secondary-color);
+  border-radius: 10px;
+  padding: 2rem;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.2s ease-out;
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.modal-text {
+  color: var(--text-color);
+  font-size: 1rem;
+  text-align: center;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.modal-confirm, .modal-cancel {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.modal-confirm {
+  background: #fff;
+  color: #000;
+}
+
+.light_mode .modal-confirm {
+  background: #000;
+  color: #fff;
+}
+
+.modal-cancel {
+  background: transparent;
+  color: var(--text-color);
+}
+
+.modal-confirm:hover, .modal-cancel:hover {
+  transform: scale(1.05);
+}
+
+.modal-cancel:hover {
+  background: #404040;
+}
+
+.light_mode .modal-cancel:hover {
+  background: #ccc;
+}
+
 /* Responsive media query code for small screen */
 @media (max-width: 768px) {
   .greeting-title {
@@ -628,4 +722,25 @@ body.hide-header .header {
     font-size: 0.75rem;
     margin-top: 0.5rem;
   }
+
+  .custom-modal {
+    padding: 1rem;
+    width: 95%;
+  }
+
+  .modal-text {
+    font-size: 0.9rem;
+  }
+
+  .modal-confirm, .modal-cancel {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+}
+
+button,
+span.icon,
+.suggestion {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }

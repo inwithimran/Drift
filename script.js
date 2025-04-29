@@ -71,7 +71,7 @@ const createMessageElement = (content, ...classes) => {
   if (classes.includes("outgoing")) {
     iconContainer.innerHTML = `
       <span onClick="editMessage(this)" class="icon material-symbols-rounded">edit</span>
-      <span onClick="deleteMessage(this)" class="icon material-symbols-rounded">delete</span>
+      <span onClick="deleteMessage(this)" class="icon material-symbols-rounded delete-color">delete</span>
     `;
   } else {
     iconContainer.innerHTML = `
@@ -322,12 +322,58 @@ const editMessage = (editButton) => {
   });
 };
 
+// Show custom modal for confirmation
+const showCustomModal = (message, onConfirm) => {
+  // Create modal overlay
+  const overlay = document.createElement("div");
+  overlay.classList.add("modal-overlay");
+
+  // Create modal
+  const modal = document.createElement("div");
+  modal.classList.add("custom-modal");
+
+  // Modal content
+  modal.innerHTML = `
+    <div class="modal-content">
+      <p class="modal-text">${message}</p>
+      <div class="modal-buttons">
+        <button class="modal-cancel">Cancel</button>
+        <button class="modal-confirm">Confirm</button>
+      </div>
+    </div>
+  `;
+
+  // Append modal to overlay and overlay to body
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  // Event listeners for buttons
+  const confirmButton = modal.querySelector(".modal-confirm");
+  const cancelButton = modal.querySelector(".modal-cancel");
+
+  confirmButton.addEventListener("click", () => {
+    onConfirm();
+    overlay.remove();
+  });
+
+  cancelButton.addEventListener("click", () => {
+    overlay.remove();
+  });
+
+  // Close modal on overlay click
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) {
+      overlay.remove();
+    }
+  });
+};
+
 // Delete message
 const deleteMessage = (deleteButton) => {
-  if (confirm("Are you sure you want to delete this message?")) {
-    const messageDiv = deleteButton.closest(".message");
-    const nextSibling = messageDiv.nextElementSibling;
+  const messageDiv = deleteButton.closest(".message");
+  const nextSibling = messageDiv.nextElementSibling;
 
+  showCustomModal("Are you sure you want to delete this message?", () => {
     // Remove the outgoing message
     messageDiv.remove();
 
@@ -344,7 +390,7 @@ const deleteMessage = (deleteButton) => {
       document.body.classList.remove("hide-header");
       localStorage.removeItem("saved-chats");
     }
-  }
+  });
 };
 
 // Update send button visibility
@@ -390,10 +436,10 @@ toggleThemeButton.addEventListener("click", () => {
 
 // Delete chats
 deleteChatButton.addEventListener("click", () => {
-  if (confirm("Are you sure you want to delete all the chats?")) {
+  showCustomModal("Are you sure you want to delete all the chats?", () => {
     localStorage.removeItem("saved-chats");
     loadDataFromLocalstorage();
-  }
+  });
 });
 
 // Suggestion click handler
