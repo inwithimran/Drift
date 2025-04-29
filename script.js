@@ -1,6 +1,5 @@
 const typingForm = document.querySelector(".typing-form");
 const chatContainer = document.querySelector(".chat-list");
-const suggestions = document.querySelectorAll(".suggestion");
 const toggleThemeButton = document.querySelector("#theme-toggle-button");
 const deleteChatButton = document.querySelector("#delete-chat-button");
 const sendMessageButton = document.querySelector("#send-message-button");
@@ -443,13 +442,21 @@ deleteChatButton.addEventListener("click", () => {
 });
 
 // Suggestion click handler
-suggestions.forEach(suggestion => {
-  suggestion.addEventListener("click", () => {
-    userMessage = suggestion.querySelector(".text").innerText;
-    typingInput.value = userMessage; // Set the input value to the suggestion text
-    updateSendButtonVisibility();
-    handleOutgoingChat();
+const bindSuggestionListeners = () => {
+  const suggestions = document.querySelectorAll(".suggestion");
+  suggestions.forEach(suggestion => {
+    suggestion.addEventListener("click", () => {
+      userMessage = suggestion.querySelector(".text").innerText;
+      typingInput.value = userMessage; // Set the input value to the suggestion text
+      updateSendButtonVisibility();
+      handleOutgoingChat();
+    });
   });
+};
+
+// Initialize suggestion listeners after suggestions are populated
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(bindSuggestionListeners, 100); // Delay to ensure suggestions are populated
 });
 
 // Prevent form submission on Enter key (allow Enter to add new line)
