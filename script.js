@@ -363,6 +363,8 @@ const editMessage = (editButton) => {
       // Cancel button: close the modal
       cancelButton.addEventListener("click", () => {
         overlay.remove();
+        // Re-enable scrolling
+        document.body.style.overflow = "auto";
       });
 
       // Save button: trigger onConfirm and close modal
@@ -387,6 +389,8 @@ const editMessage = (editButton) => {
           setTimeout(showLoadingAnimation, 500);
         }
         overlay.remove();
+        // Re-enable scrolling
+        document.body.style.overflow = "auto";
       });
     }
   }, 0);
@@ -415,6 +419,9 @@ const showCustomModal = (message, onConfirm, options = {}) => {
     </div>
   `;
 
+  // Disable scrolling on body
+  document.body.style.overflow = "hidden";
+
   // Append modal to overlay and overlay to body
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
@@ -427,10 +434,14 @@ const showCustomModal = (message, onConfirm, options = {}) => {
     confirmButton.addEventListener("click", () => {
       onConfirm();
       overlay.remove();
+      // Re-enable scrolling
+      document.body.style.overflow = "auto";
     });
 
     cancelButton.addEventListener("click", () => {
       overlay.remove();
+      // Re-enable scrolling
+      document.body.style.overflow = "auto";
     });
   }
 
@@ -438,6 +449,8 @@ const showCustomModal = (message, onConfirm, options = {}) => {
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) {
       overlay.remove();
+      // Re-enable scrolling
+      document.body.style.overflow = "auto";
     }
   });
 };

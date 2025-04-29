@@ -562,7 +562,8 @@ body.hide-header .header {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1;
+  z-index: 1000;
+  overflow: hidden;
 }
 
 .custom-modal {
@@ -643,6 +644,7 @@ body.hide-header .header {
   transition: background 0.3s ease;
   min-height: 80px;
   margin-bottom: 1rem;
+  resize: none;
 }
 
 .custom-modal .edit-input::placeholder {
