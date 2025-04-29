@@ -24,7 +24,7 @@
   --text-color: #222;
   --subheading-color: #888;
   --placeholder-color: #666;
-  --primary-color: #F5F5F5;
+  --primary-color: #f2f2f2;
   --secondary-color: #E0E0E0;
   --secondary-hover-color: #D0D0D0;
   --accent-color: #4285F4;
@@ -339,6 +339,9 @@ body.hide-header .header {
 .chat-list .message:not(.loading, .error):hover .icon:not(.hide) {
   visibility: visible;
 }
+.chat-list .message .icon {
+  visibility: hidden;
+}
 
 .chat-list .message .icon:hover {
   transform: scale(1.2);
@@ -624,6 +627,27 @@ body.hide-header .header {
 
 .light_mode .modal-cancel:hover {
   background: #ccc;
+}
+
+.custom-modal .edit-input {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 10px;
+  background: var(--primary-color);
+  color: var(--text-color);
+  font-size: 0.95rem;
+  resize: vertical;
+  outline: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background 0.3s ease;
+  min-height: 80px;
+  margin-bottom: 1rem;
+}
+
+.custom-modal .edit-input::placeholder {
+  color: var(--placeholder-color);
+  opacity: 0.7;
 }
 
 /* Responsive media query code for small screen */

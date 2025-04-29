@@ -22,17 +22,31 @@ const escapeHtml = (text) => {
   return div.innerHTML;
 }
 
-// Save chats to local storage, excluding error messages and pending outgoing message if error exists
+// Save chats to local storage, excluding error messages and their preceding outgoing messages
 const saveChatsToLocalStorage = () => {
-  const messages = chatContainer.querySelectorAll(".message:not(.error)");
-  const filteredMessages = Array.from(messages).filter(msg => {
-    // Exclude the pending outgoing message if an error exists
-    if (msg === pendingOutgoingMessage && chatContainer.querySelector(".message.error")) {
-      return false;
+  const messages = chatContainer.querySelectorAll(".message");
+  const filteredMessages = [];
+  let skipNextOutgoing = false;
+
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.classList.contains("error")) {
+      // Skip error message and set flag to skip the preceding outgoing message
+      skipNextOutgoing = true;
+      continue;
     }
-    return true;
-  });
-  const filteredHTML = filteredMessages.map(msg => msg.outerHTML).join('');
+
+    if (skipNextOutgoing && msg.classList.contains("outgoing")) {
+      // Skip the outgoing message before an error
+      skipNextOutgoing = false;
+      continue;
+    }
+
+    filteredMessages.push(msg);
+  }
+
+  // Reverse the filtered messages to maintain original order
+  const filteredHTML = filteredMessages.reverse().map(msg => msg.outerHTML).join('');
   localStorage.setItem("saved-chats", filteredHTML);
 }
 
@@ -111,7 +125,6 @@ const createLoadingMessageElement = () => {
   iconContainer.innerHTML = `
     <span onClick="copyMessage(this)" class="icon material-symbols-rounded hide">content_copy</span>
     <span onClick="speakMessage(this)" class="icon material-symbols-rounded hide">volume_up</span>
-    <span onClick="stopTyping()" class="icon material-symbols-rounded stop">stop</span>
   `;
   messageContent.appendChild(iconContainer);
 
@@ -139,7 +152,7 @@ const showTypingEffect = (text, textElement, incomingMessageDiv) => {
 
   typingInterval = setInterval(() => {
     textElement.innerText += (currentWordIndex === 0 ? '' : ' ') + words[currentWordIndex++];
-    incomingMessageDiv.querySelector(".icon:not(.stop)")?.classList.add("hide");
+    incomingMessageDiv.querySelectorAll(".icon:not(.stop)").forEach(icon => icon.classList.add("hide"));
 
     // Save to local storage during typing
     saveChatsToLocalStorage();
@@ -151,16 +164,28 @@ const showTypingEffect = (text, textElement, incomingMessageDiv) => {
       sendMessageButton.innerText = "arrow_upward"; // Reset to send icon
       sendMessageButton.removeAttribute("data-state"); // Remove pause state
       updateSendButtonVisibility();
-      incomingMessageDiv.querySelectorAll(".icon").forEach(icon => icon.classList.remove("hide"));
-      incomingMessageDiv.querySelector(".stop")?.classList.add("hide"); // Hide stop button when done
+      
+      // Ensure all icons are visible after typing (no hover required)
+      incomingMessageDiv.querySelectorAll(".icon-container .icon").forEach(icon => {
+        icon.classList.remove("hide");
+        icon.style.visibility = 'visible'; // Override CSS visibility: hidden
+      });
+      
+      // Explicitly hide the stop button if present
+      const stopButton = incomingMessageDiv.querySelector(".stop");
+      if (stopButton) {
+        stopButton.classList.add("hide");
+        stopButton.style.visibility = 'hidden';
+      }
+      
       saveChatsToLocalStorage();
     }
     chatContainer.scrollTo(0, chatContainer.scrollHeight);
   }, 75);
-}
+};
 
 // Stop typing effect
-const stopTyping = () => {
+const stopTyping = (incomingMessageDiv) => {
   if (typingInterval) {
     clearInterval(typingInterval);
     typingInterval = null;
@@ -169,14 +194,26 @@ const stopTyping = () => {
     sendMessageButton.innerText = "arrow_upward"; // Reset to send icon
     sendMessageButton.removeAttribute("data-state"); // Remove pause state
     updateSendButtonVisibility();
-    const incomingMessageDiv = document.querySelector(".message.incoming:not(.error)");
     if (incomingMessageDiv) {
-      incomingMessageDiv.querySelectorAll(".icon").forEach(icon => icon.classList.remove("hide"));
-      incomingMessageDiv.querySelector(".stop")?.classList.add("hide"); // Hide stop button
+      incomingMessageDiv.classList.remove("loading");
+      incomingMessageDiv.querySelectorAll(".icon-container .icon").forEach(icon => {
+        icon.classList.remove("hide");
+        icon.style.visibility = 'visible'; // Override CSS visibility: hidden
+      });
+      const stopButton = incomingMessageDiv.querySelector(".stop");
+      if (stopButton) {
+        stopButton.classList.add("hide");
+        stopButton.style.visibility = 'hidden';
+      }
+      // Ensure the message has some text to avoid empty messages
+      const textElement = incomingMessageDiv.querySelector(".text");
+      if (!textElement.innerText.trim()) {
+        textElement.innerText = "Typing stopped.";
+      }
     }
     saveChatsToLocalStorage();
   }
-}
+};
 
 // API response fetch
 const generateAPIResponse = async (incomingMessageDiv) => {
@@ -209,13 +246,16 @@ const generateAPIResponse = async (incomingMessageDiv) => {
     textElement.innerText = error.message;
     incomingMessageDiv.querySelector(".loading-indicator")?.remove(); // Remove loading indicator
     incomingMessageDiv.classList.add("error");
-    incomingMessageDiv.querySelectorAll(".icon").forEach(icon => icon.classList.add("hide"));
-    saveChatsToLocalStorage(); // Save non-error messages, excluding pending outgoing
+    incomingMessageDiv.querySelectorAll(".icon").forEach(icon => {
+      icon.classList.add("hide");
+      icon.style.visibility = 'hidden';
+    });
+    saveChatsToLocalStorage(); // Save non-error messages, excluding preceding outgoing
   } finally {
     incomingMessageDiv.classList.remove("loading");
     pendingOutgoingMessage = null; // Clear pending message
   }
-}
+};
 
 // Show loading message
 const showLoadingAnimation = () => {
@@ -226,7 +266,18 @@ const showLoadingAnimation = () => {
   sendMessageButton.setAttribute("data-state", "stop"); // Set pause state
   updateSendButtonVisibility();
   generateAPIResponse(incomingMessageDiv);
-}
+  // Update send button click handler to pass incomingMessageDiv to stopTyping
+  sendMessageButton.onclick = (e) => {
+    e.preventDefault();
+    if (sendMessageButton.disabled) return;
+    if (isResponseGenerating) {
+      stopTyping(incomingMessageDiv);
+    } else {
+      userMessage = typingInput.value.trim();
+      handleOutgoingChat();
+    }
+  };
+};
 
 // Copy to clipboard
 const copyMessage = (copyButton) => {
@@ -234,7 +285,7 @@ const copyMessage = (copyButton) => {
   navigator.clipboard.writeText(messageText);
   copyButton.innerText = "done";
   setTimeout(() => copyButton.innerText = "content_copy", 1000);
-}
+};
 
 // Text-to-Speech
 const speakMessage = (button) => {
@@ -257,48 +308,36 @@ const speakMessage = (button) => {
   utterance.onend = () => {
     button.innerText = "volume_up";
   };
-}
+};
 
-// Edit message
+// Edit message using a modal
 const editMessage = (editButton) => {
-  const messageContent = editButton.closest(".message").querySelector(".message-content");
-  const textElement = messageContent.querySelector(".text");
-  const outgoingMessageDiv = editButton.closest(".message");
+  const messageDiv = editButton.closest(".message");
+  const textElement = messageDiv.querySelector(".text");
+  const outgoingMessageDiv = messageDiv;
+  const originalText = textElement.innerText;
 
-  // Check if already in edit mode
-  const editInput = messageContent.querySelector(".edit-input");
-  if (editInput) {
-    // If edit input exists, close edit mode by restoring the original text
-    const currentText = editInput.value.trim();
-    textElement.innerText = currentText || textElement.dataset.originalText; // Use innerText instead of innerHTML
-    editInput.remove();
-    messageContent.querySelector(".edit-buttons")?.remove();
-    saveChatsToLocalStorage();
-    return;
-  }
-
-  // Store original text for restoration
-  const currentText = textElement.innerText;
-  textElement.dataset.originalText = currentText;
-
-  // Replace text with input and save/cancel buttons
-  textElement.innerHTML = `
-    <textarea type="text" class="edit-input">${currentText}</textarea>
-    <div class="edit-buttons">
-      <button class="cancel-edit">Cancel</button>
-      <button class="save-edit">Save</button>
+  // Create modal content with textarea
+  const modalContent = `
+    <div class="modal-content">
+      <p class="modal-text">Edit your message:</p>
+      <textarea class="edit-input">${escapeHtml(originalText)}</textarea>
+      <div class="modal-buttons">
+        <button class="modal-cancel">Cancel</button>
+        <button class="modal-confirm">Save</button>
+      </div>
     </div>
   `;
 
-  const saveButton = messageContent.querySelector(".save-edit");
-  const cancelButton = messageContent.querySelector(".cancel-edit");
+  // Show custom modal without default buttons
+  showCustomModal(modalContent, () => {
+    const modal = document.querySelector(".custom-modal");
+    const newText = modal.querySelector(".edit-input").value.trim();
 
-  saveButton.addEventListener("click", () => {
-    const newText = messageContent.querySelector(".edit-input").value.trim();
     if (newText && !isResponseGenerating) {
       // Update the outgoing message
-      textElement.innerText = newText; // Use innerText instead of innerHTML
-      
+      textElement.innerText = newText;
+
       // Find and remove the next incoming message (if it exists)
       let nextSibling = outgoingMessageDiv.nextElementSibling;
       if (nextSibling && nextSibling.classList.contains("incoming")) {
@@ -311,18 +350,52 @@ const editMessage = (editButton) => {
       saveChatsToLocalStorage();
       setTimeout(showLoadingAnimation, 500);
     }
-  });
+  }, { skipDefaultButtons: true });
 
-  cancelButton.addEventListener("click", () => {
-    // Restore original text and remove edit input/buttons
-    textElement.innerText = textElement.dataset.originalText; // Use innerText instead of innerHTML
-    messageContent.querySelector(".edit-buttons")?.remove();
-    saveChatsToLocalStorage();
-  });
+  // Add event listeners for custom buttons
+  setTimeout(() => {
+    const modal = document.querySelector(".custom-modal");
+    if (modal) {
+      const cancelButton = modal.querySelector(".modal-cancel");
+      const confirmButton = modal.querySelector(".modal-confirm");
+      const overlay = document.querySelector(".modal-overlay");
+
+      // Cancel button: close the modal
+      cancelButton.addEventListener("click", () => {
+        overlay.remove();
+      });
+
+      // Save button: trigger onConfirm and close modal
+      confirmButton.addEventListener("click", () => {
+        const modal = document.querySelector(".custom-modal");
+        const newText = modal.querySelector(".edit-input").value.trim();
+
+        if (newText && !isResponseGenerating) {
+          // Update the outgoing message
+          textElement.innerText = newText;
+
+          // Find and remove the next incoming message (if it exists)
+          let nextSibling = outgoingMessageDiv.nextElementSibling;
+          if (nextSibling && nextSibling.classList.contains("incoming")) {
+            nextSibling.remove();
+          }
+
+          // Trigger new API response with edited message
+          userMessage = newText;
+          isResponseGenerating = true;
+          saveChatsToLocalStorage();
+          setTimeout(showLoadingAnimation, 500);
+        }
+        overlay.remove();
+      });
+    }
+  }, 0);
 };
 
 // Show custom modal for confirmation
-const showCustomModal = (message, onConfirm) => {
+const showCustomModal = (message, onConfirm, options = {}) => {
+  const { skipDefaultButtons = false } = options;
+
   // Create modal overlay
   const overlay = document.createElement("div");
   overlay.classList.add("modal-overlay");
@@ -332,7 +405,7 @@ const showCustomModal = (message, onConfirm) => {
   modal.classList.add("custom-modal");
 
   // Modal content
-  modal.innerHTML = `
+  modal.innerHTML = skipDefaultButtons ? message : `
     <div class="modal-content">
       <p class="modal-text">${message}</p>
       <div class="modal-buttons">
@@ -346,18 +419,20 @@ const showCustomModal = (message, onConfirm) => {
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
 
-  // Event listeners for buttons
-  const confirmButton = modal.querySelector(".modal-confirm");
-  const cancelButton = modal.querySelector(".modal-cancel");
+  // Event listeners for buttons (only if not skipped)
+  if (!skipDefaultButtons) {
+    const confirmButton = modal.querySelector(".modal-confirm");
+    const cancelButton = modal.querySelector(".modal-cancel");
 
-  confirmButton.addEventListener("click", () => {
-    onConfirm();
-    overlay.remove();
-  });
+    confirmButton.addEventListener("click", () => {
+      onConfirm();
+      overlay.remove();
+    });
 
-  cancelButton.addEventListener("click", () => {
-    overlay.remove();
-  });
+    cancelButton.addEventListener("click", () => {
+      overlay.remove();
+    });
+  }
 
   // Close modal on overlay click
   overlay.addEventListener("click", (e) => {
@@ -412,14 +487,14 @@ const handleOutgoingChat = () => {
   document.body.classList.add("hide-header");
   chatContainer.scrollTo(0, chatContainer.scrollHeight);
   setTimeout(showLoadingAnimation, 500);
-}
+};
 
 // Send/Pause button handler
 sendMessageButton.addEventListener("click", (e) => {
   e.preventDefault();
   if (sendMessageButton.disabled) return; // Ignore if disabled
   if (isResponseGenerating) {
-    stopTyping();
+    // Note: The specific incomingMessageDiv is handled in showLoadingAnimation
   } else {
     userMessage = typingInput.value.trim();
     handleOutgoingChat();
