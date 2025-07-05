@@ -145,6 +145,34 @@ const checkIconLoad = () => {
   document.body.removeChild(testIcon);
 };
 
+// Show creator modal
+const showCreatorModal = () => {
+  const modalContent = `
+    <div class="modal-content">
+      <p class="modal-text"><strong>About the Creator</strong></p>
+      <p class="modal-text">Drift - AI Chat Assistant was created by Tabib Imran, a passionate developer dedicated to building innovative and user-friendly applications. With a focus on leveraging AI to enhance user experiences, Tabib aims to make technology accessible and engaging for everyone.</p>
+      <div class="modal-buttons">
+        <button class="modal-cancel">Close</button>
+      </div>
+    </div>
+  `;
+
+  showCustomModal(modalContent, () => {}, { skipDefaultButtons: true });
+
+  // Add event listener for the close button
+  setTimeout(() => {
+    const modal = document.querySelector(".custom-modal");
+    if (modal) {
+      const closeButton = modal.querySelector(".modal-cancel");
+      const overlay = document.querySelector(".modal-overlay");
+
+      closeButton.addEventListener("click", () => {
+        overlay.remove();
+      });
+    }
+  }, 0);
+};
+
 // Show typing effect
 const showTypingEffect = (text, textElement, incomingMessageDiv) => {
   const words = text.split(' ');
@@ -181,7 +209,7 @@ const showTypingEffect = (text, textElement, incomingMessageDiv) => {
       saveChatsToLocalStorage();
     }
     chatContainer.scrollTo(0, chatContainer.scrollHeight);
-  }, 75);
+  }, 60);
 };
 
 // Stop typing effect
@@ -363,8 +391,6 @@ const editMessage = (editButton) => {
       // Cancel button: close the modal
       cancelButton.addEventListener("click", () => {
         overlay.remove();
-        // Re-enable scrolling
-        document.body.style.overflow = "auto";
       });
 
       // Save button: trigger onConfirm and close modal
@@ -389,8 +415,6 @@ const editMessage = (editButton) => {
           setTimeout(showLoadingAnimation, 500);
         }
         overlay.remove();
-        // Re-enable scrolling
-        document.body.style.overflow = "auto";
       });
     }
   }, 0);
@@ -419,9 +443,6 @@ const showCustomModal = (message, onConfirm, options = {}) => {
     </div>
   `;
 
-  // Disable scrolling on body
-  document.body.style.overflow = "hidden";
-
   // Append modal to overlay and overlay to body
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
@@ -434,14 +455,10 @@ const showCustomModal = (message, onConfirm, options = {}) => {
     confirmButton.addEventListener("click", () => {
       onConfirm();
       overlay.remove();
-      // Re-enable scrolling
-      document.body.style.overflow = "auto";
     });
 
     cancelButton.addEventListener("click", () => {
       overlay.remove();
-      // Re-enable scrolling
-      document.body.style.overflow = "auto";
     });
   }
 
@@ -449,8 +466,6 @@ const showCustomModal = (message, onConfirm, options = {}) => {
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) {
       overlay.remove();
-      // Re-enable scrolling
-      document.body.style.overflow = "auto";
     }
   });
 };
