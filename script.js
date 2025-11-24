@@ -12,7 +12,7 @@ let typingInterval = null; // Store typing interval for stopping
 let pendingOutgoingMessage = null; // Track outgoing message until API response
 
 // API configuration
-const API_KEY = "AIzaSyC0179Ov6tOnoTQtpSByRtB1DH_2AMpQWc"; // Replace with your actual API key
+const API_KEY = "AIzaSyC09Hl6WlLRP2dW2Y7JMIZwaawNKLTFyc0"; // Replace with your actual API key
 // UPDATED MODEL: Switched from gemini-2.0-flash to the stronger gemini-2.5-flash-preview-09-2025
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
 
