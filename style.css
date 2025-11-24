@@ -1,5 +1,7 @@
 /* Import Google Font - Poppins */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+/* Import Monospace font for code */
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
 
 * {
   margin: 0;
@@ -33,6 +35,7 @@
 
 body {
   background: var(--primary-color);
+  overflow-x: hidden; 
 }
 
 .fixed-header, .header, .chat-list .message, .typing-form {
@@ -40,14 +43,14 @@ body {
   max-width: 980px;
 }
 
-/* Fixed Header Styles */
+/* Fixed Header Styles - High Z-Index to stay on top */
 .fixed-header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   background: var(--primary-color);
-  z-index: 1000;
+  z-index: 1000; /* High z-index */
   padding: 0.5rem 1rem;
   display: flex;
   justify-content: space-between;
@@ -65,6 +68,7 @@ body {
   width: 40px;
   height: 40px;
   background-image: url('images/drift_logo.png');
+  background-color: var(--accent-color);
   background-size: cover;
   background-position: center;
   border-radius: 50%;
@@ -76,6 +80,7 @@ body {
    margin-left: -50px;
    color: var(--text-color);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
 }
 
 .fixed-header .app-logo:hover {
@@ -213,7 +218,6 @@ body.hide-header .header {
   scrollbar-color: var(--accent-color) transparent;
 }
 
-
 .chat-list .message.outgoing {
   display: flex;
   flex-direction: column;
@@ -225,6 +229,92 @@ body.hide-header .header {
 .chat-list .message.incoming {
   margin-bottom: 1.5rem;
   animation: slideUp 0.4s ease-out;
+}
+
+/* ====== Table Styles ====== */
+.chat-list .message.incoming .text .table-wrapper {
+    overflow-x: auto;
+    margin: 24px 0;
+    padding: 8px;
+    padding-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-color) transparent;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    max-width: 100%; 
+    width: 100%;
+    display: block;
+}
+
+.chat-list .message.incoming .text .table-wrapper::-webkit-scrollbar {
+    height: 10px;
+}
+
+.chat-list .message.incoming .text .table-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 6px;
+}
+
+.chat-list .message.incoming .text .table-wrapper::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 6px;
+}
+
+.chat-list .message.incoming .text table {
+    width: 100%;
+    min-width: 650px;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    font-size: 0.94rem;
+    background: var(--secondary-color);
+}
+
+.chat-list .message.incoming .text table th,
+.chat-list .message.incoming .text table td {
+    padding: 16px 18px;
+    text-align: left;
+    border-bottom: 1px solid var(--secondary-hover-color);
+    border-right: 1px solid var(--secondary-hover-color);
+    white-space: normal;
+    word-wrap: break-word;
+    line-height: 1.55;
+    max-width: 320px;
+    vertical-align: top;
+}
+
+.chat-list .message.incoming .text table th:last-child,
+.chat-list .message.incoming .text table td:last-child {
+    border-right: none;
+}
+
+.chat-list .message.incoming .text table tr:last-child td {
+    border-bottom: none;
+}
+
+.chat-list .message.incoming .text table thead th {
+    background: var(--accent-color);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.chat-list .message.incoming .text table tbody tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.light_mode .chat-list .message.incoming .text table tbody tr:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.chat-list .message.incoming .text table tbody tr:hover {
+    background-color: rgba(66, 133, 244, 0.22) !important;
+    transition: background-color 0.25s ease;
 }
 
 @keyframes slideUp {
@@ -257,7 +347,55 @@ body.hide-header .header {
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.5;
+  max-width: 100%;
 }
+
+/* ========================================= */
+/* FIX: MANDATORY CODE BLOCK STYLES          */
+/* ========================================= */
+
+.chat-list .message .text pre {
+    background: #282a36 !important; /* Dracula Dark */
+    color: #f8f8f2 !important;      /* Light text */
+    padding: 15px;
+    border-radius: 10px;
+    margin: 15px 0;
+    overflow-x: auto;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    width: 100%;
+    position: relative;
+    /* Removed Z-Index to prevent overlap */
+}
+
+.chat-list .message .text code {
+    font-family: 'Fira Code', monospace;
+}
+
+/* Inline code (like `this`) styling */
+.chat-list .message .text :not(pre) > code {
+    background: rgba(124, 58, 237, 0.2); 
+    color: var(--text-color);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    border: 1px solid rgba(124, 58, 237, 0.3);
+}
+
+/* Custom Scrollbar for Code Blocks */
+.chat-list .message .text pre::-webkit-scrollbar {
+    height: 8px;
+}
+.chat-list .message .text pre::-webkit-scrollbar-track {
+    background: transparent;
+}
+.chat-list .message .text pre::-webkit-scrollbar-thumb {
+    background: var(--subheading-color);
+    border-radius: 4px;
+}
+/* ========================================= */
 
 .chat-list .message.outgoing .text {
   padding: 0.8rem 1.2rem;
@@ -348,6 +486,7 @@ body.hide-header .header {
 .chat-list .message:not(.loading, .error):hover .icon:not(.hide) {
   visibility: visible;
 }
+
 .chat-list .message .icon {
   visibility: hidden;
 }
@@ -366,7 +505,7 @@ body.hide-header .header {
   visibility: hidden;
 }
 
-/* Typing Area Styles */
+/* Typing Area Styles - High Z-Index to stay on top */
 .typing-area {
   position: fixed;
   bottom: 0;
@@ -375,7 +514,7 @@ body.hide-header .header {
   padding: 0 0.70rem 0.70rem;
   background: var(--primary-color);
   border-radius: 30% 30% 0 0;
-  z-index: 1;
+  z-index: 1000; /* High z-index */
   animation: slideUp 0.4s ease-out;
 }
 
@@ -571,7 +710,7 @@ body.hide-header .header {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1;
+  z-index: 10000;
 }
 
 .custom-modal {

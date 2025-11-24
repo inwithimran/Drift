@@ -8,13 +8,21 @@ const typingInput = document.querySelector(".typing-input");
 // State variables
 let userMessage = null;
 let isResponseGenerating = false;
-let typingInterval = null; // Store typing interval for stopping
-let pendingOutgoingMessage = null; // Track outgoing message until API response
+let typingInterval = null; 
+let pendingOutgoingMessage = null; 
 
 // API configuration
-const API_KEY = "AIzaSyC09Hl6WlLRP2dW2Y7JMIZwaawNKLTFyc0"; // Replace with your actual API key
-// UPDATED MODEL: Switched from gemini-2.0-flash to the stronger gemini-2.5-flash-preview-09-2025
+const API_KEY = "AIzaSyDg01Qkb2MgPVx856QxCbpWCn7k-PcoEBw"; // Replace with your actual API key
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
+
+// Configure Marked.js (FIX: Removed internal 'highlight' function to prevent double-render bugs)
+if (typeof marked !== 'undefined') {
+  marked.setOptions({
+    breaks: true,
+    gfm: true
+    // highlight: removed to fix invisible text bug
+  });
+}
 
 // Function to escape HTML special characters
 const escapeHtml = (text) => {
@@ -23,7 +31,7 @@ const escapeHtml = (text) => {
   return div.innerHTML;
 }
 
-// Save chats to local storage, excluding error messages and their preceding outgoing messages
+// Save chats
 const saveChatsToLocalStorage = () => {
   const messages = chatContainer.querySelectorAll(".message");
   const filteredMessages = [];
@@ -32,13 +40,11 @@ const saveChatsToLocalStorage = () => {
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
     if (msg.classList.contains("error")) {
-      // Skip error message and set flag to skip the preceding outgoing message
       skipNextOutgoing = true;
       continue;
     }
 
     if (skipNextOutgoing && msg.classList.contains("outgoing")) {
-      // Skip the outgoing message before an error
       skipNextOutgoing = false;
       continue;
     }
@@ -46,12 +52,11 @@ const saveChatsToLocalStorage = () => {
     filteredMessages.push(msg);
   }
 
-  // Reverse the filtered messages to maintain original order
   const filteredHTML = filteredMessages.reverse().map(msg => msg.outerHTML).join('');
   localStorage.setItem("saved-chats", filteredHTML);
 }
 
-// Load theme and chat data from local storage on page load
+// Load data
 const loadDataFromLocalstorage = () => {
   const savedChats = localStorage.getItem("saved-chats");
   const isLightMode = localStorage.getItem("themeColor") === "light_mode";
@@ -63,9 +68,16 @@ const loadDataFromLocalstorage = () => {
   chatContainer.scrollTo(0, chatContainer.scrollHeight);
   updateSendButtonVisibility();
   checkIconLoad();
+  
+  // Re-highlight code blocks on load
+  if (typeof hljs !== 'undefined') {
+      chatContainer.querySelectorAll('pre code').forEach((block) => {
+          hljs.highlightElement(block);
+      });
+  }
 }
 
-// Create a new message element and return it
+// Create message element
 const createMessageElement = (content, ...classes) => {
   const div = document.createElement("div");
   div.classList.add("message", ...classes);
@@ -76,12 +88,9 @@ const createMessageElement = (content, ...classes) => {
   const textDiv = document.createElement("div");
   textDiv.classList.add("text");
   
-  // চেক করা হচ্ছে এটি আউটগোইং (ইউজার) মেসেজ কিনা।
-  // ইউজার মেসেজ প্লেইন টেক্সট রাখা নিরাপদ, আর ইনকামিং মেসেজ আমরা showTypingEffect এ হ্যান্ডেল করব।
   if (classes.includes("outgoing")) {
       textDiv.innerText = content; 
   } else {
-      // ইনকামিং মেসেজের জন্য প্রাথমিক অবস্থায় খালি রাখা বা লোডিং টেক্সট দেওয়া যেতে পারে
       textDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(content) : content;
   }
 
@@ -108,7 +117,7 @@ const createMessageElement = (content, ...classes) => {
   return div;
 }
 
-// Create loading message element
+// Create loading element
 const createLoadingMessageElement = () => {
   const div = document.createElement("div");
   div.classList.add("message", "incoming", "loading");
@@ -141,7 +150,6 @@ const createLoadingMessageElement = () => {
   return div;
 }
 
-// Check if Material Symbols font loaded, fallback if not
 const checkIconLoad = () => {
   const testIcon = document.createElement("span");
   testIcon.className = "material-symbols-rounded";
@@ -168,7 +176,6 @@ const showCreatorModal = () => {
 
   showCustomModal(modalContent, () => {}, { skipDefaultButtons: true });
 
-  // Add event listener for the close button
   setTimeout(() => {
     const modal = document.querySelector(".custom-modal");
     if (modal) {
@@ -182,99 +189,104 @@ const showCreatorModal = () => {
   }, 0);
 };
 
-// Show typing effect (UPDATED FOR MARKDOWN & SMART SCROLL)
+// Typing Effect
 const showTypingEffect = (text, textElement, incomingMessageDiv) => {
   const words = text.split(' ');
   let currentWordIndex = 0;
-  let accumulatedText = ""; // পুরো টেক্সট জমা রাখার জন্য ভেরিয়েবল
+  let accumulatedText = ""; 
 
   typingInterval = setInterval(() => {
-    // SMART SCROLL LOGIC START:
-    // নতুন টেক্সট যোগ করার আগে চেক করুন ইউজার কি বর্তমানে চ্যাটের একদম নিচে আছেন কিনা?
-    // 100px বাফার রাখা হয়েছে যাতে ছোটখাটো পার্থক্যের কারণে সমস্যা না হয়।
-    const isAtBottom = (chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight) < 20;
+    const isAtBottom = (chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight) < 50;
 
-    // প্রতিবার একটি করে শব্দ যোগ করা হচ্ছে
     accumulatedText += (currentWordIndex === 0 ? '' : ' ') + words[currentWordIndex++];
     
-    // Marked লাইব্রেরি ব্যবহার করে Markdown রেন্ডার করা হচ্ছে
     if (typeof marked !== 'undefined') {
-        textElement.innerHTML = marked.parse(accumulatedText);
+        let parsed = marked.parse(accumulatedText);
+        parsed = parsed.replace(/<table>/g, '<div class="table-wrapper"><div class="table-container"><table>');
+        parsed = parsed.replace(/<\/table>/g, '</table></div></div>');
+        textElement.innerHTML = parsed;
     } else {
-        // যদি লাইব্রেরি না থাকে তবে সাধারণ টেক্সট হিসেবে দেখাবে
         textElement.innerText = accumulatedText;
     }
 
     incomingMessageDiv.querySelectorAll(".icon:not(.stop)").forEach(icon => icon.classList.add("hide"));
 
-    // Save to local storage during typing
     saveChatsToLocalStorage();
 
     if (currentWordIndex === words.length) {
       clearInterval(typingInterval);
       typingInterval = null;
       isResponseGenerating = false;
-      sendMessageButton.innerText = "arrow_upward"; // Reset to send icon
-      sendMessageButton.removeAttribute("data-state"); // Remove pause state
+      sendMessageButton.innerText = "arrow_upward"; 
+      sendMessageButton.removeAttribute("data-state"); 
       updateSendButtonVisibility();
       
-      // Ensure all icons are visible after typing (no hover required)
       incomingMessageDiv.querySelectorAll(".icon-container .icon").forEach(icon => {
         icon.classList.remove("hide");
-        icon.style.visibility = 'visible'; // Override CSS visibility: hidden
+        icon.style.visibility = 'visible'; 
       });
       
-      // Explicitly hide the stop button if present
       const stopButton = incomingMessageDiv.querySelector(".stop");
       if (stopButton) {
         stopButton.classList.add("hide");
         stopButton.style.visibility = 'hidden';
       }
       
+      // APPLY SYNTAX HIGHLIGHTING HERE (Once typing finishes)
+      // This is the safest place to apply colors without breaking HTML
+      if (typeof hljs !== 'undefined') {
+        textElement.querySelectorAll('pre code').forEach((block) => {
+           hljs.highlightElement(block);
+        });
+      }
+
       saveChatsToLocalStorage();
     }
     
-    // SMART SCROLL LOGIC END:
-    // শুধুমাত্র যদি ইউজার আগে থেকেই নিচে থাকেন (isAtBottom সত্য হয়), তবেই অটোমেটিক স্ক্রল করুন।
-    // যদি তিনি উপরে স্ক্রল করে কিছু পড়ছেন, তবে তাকে ডিস্টার্ব করা হবে না।
     if (isAtBottom) {
         chatContainer.scrollTo(0, chatContainer.scrollHeight);
     }
-  }, 60); // টাইপিং স্পিড
+  }, 30); 
 };
 
-// Stop typing effect
+// Stop typing
 const stopTyping = (incomingMessageDiv) => {
   if (typingInterval) {
     clearInterval(typingInterval);
     typingInterval = null;
     isResponseGenerating = false;
-    userMessage = null; // Reset userMessage to prevent sending old text
-    sendMessageButton.innerText = "arrow_upward"; // Reset to send icon
-    sendMessageButton.removeAttribute("data-state"); // Remove pause state
+    userMessage = null; 
+    sendMessageButton.innerText = "arrow_upward"; 
+    sendMessageButton.removeAttribute("data-state"); 
     updateSendButtonVisibility();
     if (incomingMessageDiv) {
       incomingMessageDiv.classList.remove("loading");
       incomingMessageDiv.querySelectorAll(".icon-container .icon").forEach(icon => {
         icon.classList.remove("hide");
-        icon.style.visibility = 'visible'; // Override CSS visibility: hidden
+        icon.style.visibility = 'visible'; 
       });
       const stopButton = incomingMessageDiv.querySelector(".stop");
       if (stopButton) {
         stopButton.classList.add("hide");
         stopButton.style.visibility = 'hidden';
       }
-      // Ensure the message has some text to avoid empty messages
+      
       const textElement = incomingMessageDiv.querySelector(".text");
       if (!textElement.innerText.trim()) {
         textElement.innerText = "Typing stopped.";
+      }
+      
+      // Also apply highlights if stopped manually
+       if (typeof hljs !== 'undefined') {
+        textElement.querySelectorAll('pre code').forEach((block) => {
+           hljs.highlightElement(block);
+        });
       }
     }
     saveChatsToLocalStorage();
   }
 };
 
-// Function to get current date and time context
 const getCurrentDateTimeContext = () => {
     const now = new Date();
     const options = { 
@@ -289,18 +301,14 @@ const getCurrentDateTimeContext = () => {
     };
     const dateString = now.toLocaleDateString('en-US', options);
     
-    return `You are a helpful AI assistant. The current date and time is ${dateString}. Use this information when answering questions about the present date or time.`;
+    return `You are a helpful AI assistant. The current date and time is ${dateString}. IMPORTANT: When providing code snippets (HTML, CSS, JS, Python, etc.), ALWAYS use Markdown code blocks with the language specified (e.g., \`\`\`python ... \`\`\`).`;
 };
 
-// **NEW FUNCTION: সম্পূর্ণ কথোপকথনের ইতিহাস তৈরি করা হচ্ছে**
-// এটি চ্যাট কনটেইনার থেকে সমস্ত বার্তা সংগ্রহ করে API-এর জন্য উপযুক্ত বিন্যাসে সাজিয়ে দেবে।
 const getConversationHistory = () => {
-    // শুধুমাত্র লোডিং বা ত্রুটিপূর্ণ বার্তাগুলি বাদ দিয়ে অন্যান্য বার্তাগুলি সংগ্রহ করা হচ্ছে
     const messages = chatContainer.querySelectorAll(".message:not(.loading):not(.error)");
     const history = [];
 
     messages.forEach(message => {
-        // বার্তার ধরন অনুযায়ী role নির্ধারণ করা হচ্ছে
         const role = message.classList.contains("outgoing") ? "user" : "model";
         const text = message.querySelector(".text").innerText.trim();
 
@@ -315,14 +323,10 @@ const getConversationHistory = () => {
     return history;
 };
 
-// API response fetch
 const generateAPIResponse = async (incomingMessageDiv) => {
   const textElement = incomingMessageDiv.querySelector(".text");
   
-  // সম্পূর্ণ কথোপকথনের ইতিহাস সংগ্রহ করা হচ্ছে
   const conversationHistory = getConversationHistory(); 
-  
-  // বর্তমান তারিখ ও সময় সহ সিস্টেম ইনস্ট্রাকশন তৈরি করা হচ্ছে
   const systemContext = getCurrentDateTimeContext();
 
   try {
@@ -330,14 +334,10 @@ const generateAPIResponse = async (incomingMessageDiv) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
-        // **গুরুত্বপূর্ণ পরিবর্তন: এখানে পুরো conversation history পাঠানো হচ্ছে**
         contents: conversationHistory, 
-        
-        // সিস্টেম ইনস্ট্রাকশন যোগ করা হচ্ছে, যাতে AI মডেল তার persona এবং বর্তমান তারিখ জানতে পারে
         systemInstruction: {
             parts: [{ text: systemContext }]
         },
-        // Google Search Grounding Tool সক্রিয় করা হচ্ছে
         tools: [{ "google_search": {} }]
       }),
     });
@@ -345,42 +345,38 @@ const generateAPIResponse = async (incomingMessageDiv) => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error.message);
 
-    // UPDATED: Removed the regex replace that was stripping markdown (**)
-    // We want the raw markdown from the API so 'marked' can parse it
     const apiResponse = data?.candidates[0].content.parts[0].text;
     
-    incomingMessageDiv.querySelector(".loading-indicator")?.remove(); // Remove loading indicator
+    incomingMessageDiv.querySelector(".loading-indicator")?.remove();
     showTypingEffect(apiResponse, textElement, incomingMessageDiv);
   } catch (error) {
     isResponseGenerating = false;
-    userMessage = null; // Reset userMessage on error
-    sendMessageButton.innerText = "arrow_upward"; // Reset to send icon
-    sendMessageButton.removeAttribute("data-state"); // Remove pause state
+    userMessage = null;
+    sendMessageButton.innerText = "arrow_upward";
+    sendMessageButton.removeAttribute("data-state");
     updateSendButtonVisibility();
     textElement.innerText = error.message;
-    incomingMessageDiv.querySelector(".loading-indicator")?.remove(); // Remove loading indicator
+    incomingMessageDiv.querySelector(".loading-indicator")?.remove();
     incomingMessageDiv.classList.add("error");
     incomingMessageDiv.querySelectorAll(".icon").forEach(icon => {
       icon.classList.add("hide");
       icon.style.visibility = 'hidden';
     });
-    saveChatsToLocalStorage(); // Save non-error messages, excluding preceding outgoing
+    saveChatsToLocalStorage();
   } finally {
     incomingMessageDiv.classList.remove("loading");
-    pendingOutgoingMessage = null; // Clear pending message
+    pendingOutgoingMessage = null;
   }
 };
 
-// Show loading message
 const showLoadingAnimation = () => {
   const incomingMessageDiv = createLoadingMessageElement();
   chatContainer.appendChild(incomingMessageDiv);
   chatContainer.scrollTo(0, chatContainer.scrollHeight);
-  sendMessageButton.innerText = "stop"; // Change to pause icon
-  sendMessageButton.setAttribute("data-state", "stop"); // Set pause state
+  sendMessageButton.innerText = "stop";
+  sendMessageButton.setAttribute("data-state", "stop");
   updateSendButtonVisibility();
   generateAPIResponse(incomingMessageDiv);
-  // Update send button click handler to pass incomingMessageDiv to stopTyping
   sendMessageButton.onclick = (e) => {
     e.preventDefault();
     if (sendMessageButton.disabled) return;
@@ -393,46 +389,45 @@ const showLoadingAnimation = () => {
   };
 };
 
-// Copy to clipboard
 const copyMessage = (copyButton) => {
-  // innerText is used here, which is GOOD because it copies plain text without HTML tags
   const messageText = copyButton.closest(".message-content").querySelector(".text").innerText;
-  navigator.clipboard.writeText(messageText);
+  
+  const textarea = document.createElement("textarea");
+  textarea.value = messageText;
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
+
   copyButton.innerText = "done";
   setTimeout(() => copyButton.innerText = "content_copy", 1000);
 };
 
-// Text-to-Speech
 const speakMessage = (button) => {
   const messageText = button.closest(".message-content").querySelector(".text").innerText;
   
-  // If speech is already active, stop it
   if (button.innerText === "pause") {
     speechSynthesis.cancel();
     button.innerText = "volume_up";
     return;
   }
 
-  // Start new speech
   const utterance = new SpeechSynthesisUtterance(messageText);
   utterance.lang = "en-US";
   speechSynthesis.speak(utterance);
   button.innerText = "pause";
   
-  // Reset icon when speech ends
   utterance.onend = () => {
     button.innerText = "volume_up";
   };
 };
 
-// Edit message using a modal
 const editMessage = (editButton) => {
   const messageDiv = editButton.closest(".message");
   const textElement = messageDiv.querySelector(".text");
   const outgoingMessageDiv = messageDiv;
   const originalText = textElement.innerText;
 
-  // Create modal content with textarea
   const modalContent = `
     <div class="modal-content">
       <p class="modal-text">Edit your message:</p>
@@ -444,22 +439,16 @@ const editMessage = (editButton) => {
     </div>
   `;
 
-  // Show custom modal without default buttons
   showCustomModal(modalContent, () => {
     const modal = document.querySelector(".custom-modal");
     const newText = modal.querySelector(".edit-input").value.trim();
 
     if (newText && !isResponseGenerating) {
-      // Update the outgoing message
       textElement.innerText = newText;
-
-      // Find and remove the next incoming message (if it exists)
       let nextSibling = outgoingMessageDiv.nextElementSibling;
       if (nextSibling && nextSibling.classList.contains("incoming")) {
         nextSibling.remove();
       }
-
-      // Trigger new API response with edited message
       userMessage = newText;
       isResponseGenerating = true;
       saveChatsToLocalStorage();
@@ -467,7 +456,6 @@ const editMessage = (editButton) => {
     }
   }, { skipDefaultButtons: true });
 
-  // Add event listeners for custom buttons
   setTimeout(() => {
     const modal = document.querySelector(".custom-modal");
     if (modal) {
@@ -475,27 +463,20 @@ const editMessage = (editButton) => {
       const confirmButton = modal.querySelector(".modal-confirm");
       const overlay = document.querySelector(".modal-overlay");
 
-      // Cancel button: close the modal
       cancelButton.addEventListener("click", () => {
         overlay.remove();
       });
 
-      // Save button: trigger onConfirm and close modal
       confirmButton.addEventListener("click", () => {
         const modal = document.querySelector(".custom-modal");
         const newText = modal.querySelector(".edit-input").value.trim();
 
         if (newText && !isResponseGenerating) {
-          // Update the outgoing message
           textElement.innerText = newText;
-
-          // Find and remove the next incoming message (if it exists)
           let nextSibling = outgoingMessageDiv.nextElementSibling;
           if (nextSibling && nextSibling.classList.contains("incoming")) {
             nextSibling.remove();
           }
-
-          // Trigger new API response with edited message
           userMessage = newText;
           isResponseGenerating = true;
           saveChatsToLocalStorage();
@@ -507,19 +488,15 @@ const editMessage = (editButton) => {
   }, 0);
 };
 
-// Show custom modal for confirmation
 const showCustomModal = (message, onConfirm, options = {}) => {
   const { skipDefaultButtons = false } = options;
 
-  // Create modal overlay
   const overlay = document.createElement("div");
   overlay.classList.add("modal-overlay");
 
-  // Create modal
   const modal = document.createElement("div");
   modal.classList.add("custom-modal");
 
-  // Modal content
   modal.innerHTML = skipDefaultButtons ? message : `
     <div class="modal-content">
       <p class="modal-text">${message}</p>
@@ -530,11 +507,9 @@ const showCustomModal = (message, onConfirm, options = {}) => {
     </div>
   `;
 
-  // Append modal to overlay and overlay to body
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
 
-  // Event listeners for buttons (only if not skipped)
   if (!skipDefaultButtons) {
     const confirmButton = modal.querySelector(".modal-confirm");
     const cancelButton = modal.querySelector(".modal-cancel");
@@ -549,7 +524,6 @@ const showCustomModal = (message, onConfirm, options = {}) => {
     });
   }
 
-  // Close modal on overlay click
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) {
       overlay.remove();
@@ -557,24 +531,16 @@ const showCustomModal = (message, onConfirm, options = {}) => {
   });
 };
 
-// Delete message
 const deleteMessage = (deleteButton) => {
   const messageDiv = deleteButton.closest(".message");
   const nextSibling = messageDiv.nextElementSibling;
 
   showCustomModal("Are you sure you want to delete this message?", () => {
-    // Remove the outgoing message
     messageDiv.remove();
-
-    // If the next sibling exists and is an incoming message, remove it too
     if (nextSibling && nextSibling.classList.contains("incoming")) {
       nextSibling.remove();
     }
-
-    // Update local storage
     saveChatsToLocalStorage();
-
-    // Show header if no chats remain
     if (!chatContainer.children.length) {
       document.body.classList.remove("hide-header");
       localStorage.removeItem("saved-chats");
@@ -582,48 +548,41 @@ const deleteMessage = (deleteButton) => {
   });
 };
 
-// Update send button visibility
 const updateSendButtonVisibility = () => {
   const hasText = typingInput.value.trim().length > 0;
-  // Disable button only if no text and not in pause state
   sendMessageButton.disabled = !hasText && !isResponseGenerating;
 };
 
-// Outgoing message handler
 const handleOutgoingChat = () => {
-  if (!userMessage || isResponseGenerating) return; // Prevent sending if userMessage is null or response is generating
+  if (!userMessage || isResponseGenerating) return;
 
   isResponseGenerating = true;
 
   const outgoingMessageDiv = createMessageElement(userMessage, "outgoing");
   chatContainer.appendChild(outgoingMessageDiv);
-  pendingOutgoingMessage = outgoingMessageDiv; // Track pending outgoing message
+  pendingOutgoingMessage = outgoingMessageDiv;
   typingForm.reset();
   document.body.classList.add("hide-header");
   chatContainer.scrollTo(0, chatContainer.scrollHeight);
   setTimeout(showLoadingAnimation, 500);
 };
 
-// Send/Pause button handler
 sendMessageButton.addEventListener("click", (e) => {
   e.preventDefault();
-  if (sendMessageButton.disabled) return; // Ignore if disabled
+  if (sendMessageButton.disabled) return;
   if (isResponseGenerating) {
-    // Note: The specific incomingMessageDiv is handled in showLoadingAnimation
   } else {
     userMessage = typingInput.value.trim();
     handleOutgoingChat();
   }
 });
 
-// Theme toggle
 toggleThemeButton.addEventListener("click", () => {
   const isLightMode = document.body.classList.toggle("light_mode");
   localStorage.setItem("themeColor", isLightMode ? "light_mode" : "dark_mode");
   toggleThemeButton.innerText = isLightMode ? "dark_mode" : "light_mode";
 });
 
-// Delete chats
 deleteChatButton.addEventListener("click", () => {
   showCustomModal("Are you sure you want to delete all the chats?", () => {
     localStorage.removeItem("saved-chats");
@@ -631,37 +590,31 @@ deleteChatButton.addEventListener("click", () => {
   });
 });
 
-// Suggestion click handler
 const bindSuggestionListeners = () => {
   const suggestions = document.querySelectorAll(".suggestion");
   suggestions.forEach(suggestion => {
     suggestion.addEventListener("click", () => {
       userMessage = suggestion.querySelector(".text").innerText;
-      typingInput.value = userMessage; // Set the input value to the suggestion text
+      typingInput.value = userMessage;
       updateSendButtonVisibility();
       handleOutgoingChat();
     });
   });
 };
 
-// Initialize suggestion listeners after suggestions are populated
 document.addEventListener("DOMContentLoaded", () => {
-  setTimeout(bindSuggestionListeners, 100); // Delay to ensure suggestions are populated
+  loadDataFromLocalstorage();
+  setTimeout(bindSuggestionListeners, 100); 
 });
 
-// Prevent form submission on Enter key (allow Enter to add new line)
 typingForm.addEventListener("submit", (e) => {
-  e.preventDefault(); // Prevent form submission
+  e.preventDefault();
 });
 
-// Input change handler to show/hide send button
 typingInput.addEventListener("input", updateSendButtonVisibility);
 
-// Initialize send button state
-sendMessageButton.disabled = true; // Disable button by default
-loadDataFromLocalstorage();
+sendMessageButton.disabled = true;
 
-// Export chat to text file
 const exportChat = () => {
   const allMessages = document.querySelectorAll(".message .text");
   let textContent = "";
