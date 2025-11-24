@@ -12,7 +12,7 @@ let typingInterval = null;
 let pendingOutgoingMessage = null; 
 
 // API configuration
-const API_KEY = "AIzaSyDg01Qkb2MgPVx856QxCbpWCn7k-PcoEBw"; // Replace with your actual API key
+const API_KEY = "AIzaSyCgAcKMYs9pe04FocBCMOVxgjW3xv1ucso"; // Replace with your actual API key
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
 
 // Configure Marked.js (FIX: Removed internal 'highlight' function to prevent double-render bugs)
