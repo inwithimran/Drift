@@ -11,16 +11,14 @@ let isResponseGenerating = false;
 let typingInterval = null; 
 let pendingOutgoingMessage = null; 
 
-// API configuration
-const API_KEY = "AIzaSyCgAcKMYs9pe04FocBCMOVxgjW3xv1ucso"; // Replace with your actual API key
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
+// API configuration (Vercel Serverless Function Route)
+const API_URL = "/api/generate";
 
-// Configure Marked.js (FIX: Removed internal 'highlight' function to prevent double-render bugs)
+// Configure Marked.js
 if (typeof marked !== 'undefined') {
   marked.setOptions({
     breaks: true,
     gfm: true
-    // highlight: removed to fix invisible text bug
   });
 }
 
@@ -69,7 +67,6 @@ const loadDataFromLocalstorage = () => {
   updateSendButtonVisibility();
   checkIconLoad();
   
-  // Re-highlight code blocks on load
   if (typeof hljs !== 'undefined') {
       chatContainer.querySelectorAll('pre code').forEach((block) => {
           hljs.highlightElement(block);
@@ -232,8 +229,6 @@ const showTypingEffect = (text, textElement, incomingMessageDiv) => {
         stopButton.style.visibility = 'hidden';
       }
       
-      // APPLY SYNTAX HIGHLIGHTING HERE (Once typing finishes)
-      // This is the safest place to apply colors without breaking HTML
       if (typeof hljs !== 'undefined') {
         textElement.querySelectorAll('pre code').forEach((block) => {
            hljs.highlightElement(block);
@@ -276,7 +271,6 @@ const stopTyping = (incomingMessageDiv) => {
         textElement.innerText = "Typing stopped.";
       }
       
-      // Also apply highlights if stopped manually
        if (typeof hljs !== 'undefined') {
         textElement.querySelectorAll('pre code').forEach((block) => {
            hljs.highlightElement(block);
@@ -287,65 +281,23 @@ const stopTyping = (incomingMessageDiv) => {
   }
 };
 
-const getCurrentDateTimeContext = () => {
-    const now = new Date();
-    const options = { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit', 
-        timeZoneName: 'short' 
-    };
-    const dateString = now.toLocaleDateString('en-US', options);
-    
-    return `You are a helpful AI assistant. The current date and time is ${dateString}. IMPORTANT: When providing code snippets (HTML, CSS, JS, Python, etc.), ALWAYS use Markdown code blocks with the language specified (e.g., \`\`\`python ... \`\`\`).`;
-};
-
-const getConversationHistory = () => {
-    const messages = chatContainer.querySelectorAll(".message:not(.loading):not(.error)");
-    const history = [];
-
-    messages.forEach(message => {
-        const role = message.classList.contains("outgoing") ? "user" : "model";
-        const text = message.querySelector(".text").innerText.trim();
-
-        if (text) {
-            history.push({
-                role: role,
-                parts: [{ text: text }]
-            });
-        }
-    });
-
-    return history;
-};
-
 const generateAPIResponse = async (incomingMessageDiv) => {
   const textElement = incomingMessageDiv.querySelector(".text");
   
-  const conversationHistory = getConversationHistory(); 
-  const systemContext = getCurrentDateTimeContext();
+  // Get latest prompt sent by user
+  const promptText = userMessage || typingInput.value.trim();
 
   try {
     const response = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        contents: conversationHistory, 
-        systemInstruction: {
-            parts: [{ text: systemContext }]
-        },
-        tools: [{ "google_search": {} }]
-      }),
+      body: JSON.stringify({ prompt: promptText }),
     });
 
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error.message);
+    if (!response.ok) throw new Error(data.error || "Failed to fetch response");
 
-    const apiResponse = data?.candidates[0].content.parts[0].text;
+    const apiResponse = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response received.";
     
     incomingMessageDiv.querySelector(".loading-indicator")?.remove();
     showTypingEffect(apiResponse, textElement, incomingMessageDiv);
