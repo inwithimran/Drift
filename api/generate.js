@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'API key not configured in Vercel' });
   }
 
-  // রিয়েল-টাইম বাংলাদেশ সময় ও তারিখ বের করার অংশ
+  // রিয়েল-টাইম বাংলাদেশ সময় ও তারিখ
   const currentDateTime = new Date().toLocaleString('en-US', {
     timeZone: 'Asia/Dhaka',
     dateStyle: 'full',
@@ -29,11 +29,16 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          // লাইভ গুগল সার্চ এনাবল করার সঠিক সিনট্যাক্স
+          // v1beta REST API-তে গুগল সার্চ এর জন্য সঠিক ফরম্যাট
           tools: [
             {
-              google_search: {}
-            }
+              googleSearchRetrieval: {
+                dynamicRetrievalConfig: {
+                  mode: "MODE_DYNAMIC",
+                  dynamicThreshold: 0.3,
+                },
+              },
+            },
           ],
           contents: [
             {
@@ -51,7 +56,10 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-      return res.status(response.status).json({ error: data.error?.message || 'API Request Failed' });
+      // API থেকে কোনো এরর আসলে সেটা যেন পরিষ্কার JSON রিটার্ন করে
+      return res.status(response.status).json({ 
+        error: data.error?.message || 'API Request Failed' 
+      });
     }
 
     return res.status(200).json(data);
