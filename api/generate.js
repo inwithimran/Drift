@@ -13,14 +13,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { prompt } = req.body || {};
-
-    if (!prompt) {
-      return res.status(400).json({ error: 'Prompt is required' });
-    }
+    const { contents, prompt } = req.body || {};
 
     const apiKey = process.env.GEMINI_API_KEY;
-
     if (!apiKey) {
       return res.status(500).json({ error: 'API key not configured in Vercel' });
     }
@@ -32,6 +27,23 @@ export default async function handler(req, res) {
       timeStyle: 'medium'
     });
 
+    const systemInstruction = {
+      parts: [{
+        text: `Current Local Time & Date in Bangladesh: ${currentDateTime}. Provide factual and updated information.`
+      }]
+    };
+
+    // contents বা prompt - যেটিই পাঠানো হোক তা গ্রহণ করবে
+    let payloadContents = [];
+
+    if (contents && Array.isArray(contents) && contents.length > 0) {
+      payloadContents = contents;
+    } else if (prompt) {
+      payloadContents = [{ role: 'user', parts: [{ text: prompt }] }];
+    } else {
+      return res.status(400).json({ error: 'Prompt or contents is required' });
+    }
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
@@ -40,16 +52,9 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          systemInstruction: systemInstruction,
           tools: [{ googleSearch: {} }],
-          contents: [
-            {
-              parts: [
-                {
-                  text: `Current Local Time & Date in Bangladesh: ${currentDateTime}.\nUser Question: ${prompt}`
-                }
-              ]
-            }
-          ]
+          contents: payloadContents
         }),
       }
     );
