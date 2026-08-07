@@ -15,6 +15,13 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'API key not configured in Vercel' });
   }
 
+  // রিয়েল-টাইম বাংলাদেশ সময় ও তারিখ বের করার অংশ
+  const currentDateTime = new Date().toLocaleString('en-US', {
+    timeZone: 'Asia/Dhaka',
+    dateStyle: 'full',
+    timeStyle: 'medium'
+  });
+
   try {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -24,9 +31,15 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          // লাইভ গুগল সার্চ এনাবল
+          tools: [{ googleSearch: {} }],
           contents: [
             {
-              parts: [{ text: prompt }]
+              parts: [
+                {
+                  text: `Current Local Time & Date in Bangladesh: ${currentDateTime}.\nUser Question: ${prompt}`
+                }
+              ]
             }
           ]
         }),
