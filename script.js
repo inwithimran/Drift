@@ -54,16 +54,16 @@ const saveChatsToLocalStorage = () => {
   localStorage.setItem("saved-chats", filteredHTML);
 }
 
-// Extract Chat History for Gemini API from DOM
+// Helper: Extract chat history from DOM for API requests
 const getChatHistoryFromDOM = () => {
-  const history = [];
   const messages = chatContainer.querySelectorAll(".message:not(.loading):not(.error)");
+  const history = [];
 
-  messages.forEach((msg) => {
-    const textEl = msg.querySelector(".text");
-    if (!textEl) return;
-    
-    const text = textEl.innerText.trim();
+  messages.forEach(msg => {
+    const textElement = msg.querySelector(".text");
+    if (!textElement) return;
+
+    const text = textElement.innerText.trim();
     if (!text) return;
 
     if (msg.classList.contains("outgoing")) {
@@ -312,14 +312,14 @@ const stopTyping = (incomingMessageDiv) => {
 const generateAPIResponse = async (incomingMessageDiv) => {
   const textElement = incomingMessageDiv.querySelector(".text");
   
-  // Extract all chat history including the latest user message
-  const contents = getChatHistoryFromDOM();
+  // Get full chat history including all previous messages
+  const historyContents = getChatHistoryFromDOM();
 
   try {
     const response = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: contents }),
+      body: JSON.stringify({ contents: historyContents }),
     });
 
     const data = await response.json();
