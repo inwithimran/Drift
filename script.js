@@ -54,6 +54,34 @@ const saveChatsToLocalStorage = () => {
   localStorage.setItem("saved-chats", filteredHTML);
 }
 
+// Extract Chat History for Gemini API from DOM
+const getChatHistoryFromDOM = () => {
+  const history = [];
+  const messages = chatContainer.querySelectorAll(".message:not(.loading):not(.error)");
+
+  messages.forEach((msg) => {
+    const textEl = msg.querySelector(".text");
+    if (!textEl) return;
+    
+    const text = textEl.innerText.trim();
+    if (!text) return;
+
+    if (msg.classList.contains("outgoing")) {
+      history.push({
+        role: "user",
+        parts: [{ text: text }]
+      });
+    } else if (msg.classList.contains("incoming")) {
+      history.push({
+        role: "model",
+        parts: [{ text: text }]
+      });
+    }
+  });
+
+  return history;
+}
+
 // Load data
 const loadDataFromLocalstorage = () => {
   const savedChats = localStorage.getItem("saved-chats");
@@ -284,14 +312,14 @@ const stopTyping = (incomingMessageDiv) => {
 const generateAPIResponse = async (incomingMessageDiv) => {
   const textElement = incomingMessageDiv.querySelector(".text");
   
-  // Get latest prompt sent by user
-  const promptText = userMessage || typingInput.value.trim();
+  // Extract all chat history including the latest user message
+  const contents = getChatHistoryFromDOM();
 
   try {
     const response = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: promptText }),
+      body: JSON.stringify({ contents: contents }),
     });
 
     const data = await response.json();
